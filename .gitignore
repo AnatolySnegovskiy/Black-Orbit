@@ -1,0 +1,7 @@
+Library/*
+Temp/*
+.vs
+*.cache
+Logs
+/.idea
+/UserSettings/Layouts/*
