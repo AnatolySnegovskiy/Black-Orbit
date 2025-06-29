@@ -1,9 +1,11 @@
 ﻿using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Black_Orbit.Scripts.FPS
 {
     [RequireComponent(typeof(Rigidbody))]
+    [RequireComponent(typeof(PlayerInput))]
     public class FirstPersonController : MonoBehaviour
     {
         [Header("Movement")]
@@ -18,7 +20,7 @@ namespace Black_Orbit.Scripts.FPS
         [SerializeField] private float strafeTiltSpeed = 5f;
 
         private float _currentTilt; // Текущий угол поворота камеры по Z
-        private float _targetTilt;  // Целевой угол
+        private float _targetTilt; // Целевой угол
         private float _lookX; // вращение вверх/вниз (вокруг X)
         private float _lookY; // вращение вбок (вокруг Y)
         private float _jumpKickOffset;
@@ -26,6 +28,7 @@ namespace Black_Orbit.Scripts.FPS
 
         [Header("Camera")]
         [SerializeField] private Transform cameraHolder;
+        [SerializeField] private Transform camera;
         [Range(0.1f, 1f)]
         [SerializeField] private float lookSensitivity = 0.2f;
         [Range(0f, 1f)]
@@ -39,7 +42,7 @@ namespace Black_Orbit.Scripts.FPS
 
         private Rigidbody _rb;
         private CapsuleCollider _col;
-        private PlayerControls _input;
+        private PlayerInput _input;
         private Vector2 _moveInput;
         private Vector2 _rawLookInput;
         private Vector2 _smoothLookInput;
@@ -47,10 +50,14 @@ namespace Black_Orbit.Scripts.FPS
         private bool _isGrounded;
         private bool _isCrouching;
         private float _currentXRotation;
+        private InputActionMap _currentMap;
+        CharacterAnimator _animator;
 
         void Awake()
         {
-            _input = new PlayerControls();
+            _animator = new CharacterAnimator(GetComponent<Animator>());
+            _input = GetComponent<PlayerInput>();
+            _currentMap = _input.currentActionMap;
             _rb = GetComponent<Rigidbody>();
             _col = GetComponent<CapsuleCollider>();
             _originalHeight = _col.height;
@@ -59,18 +66,18 @@ namespace Black_Orbit.Scripts.FPS
 
         void OnEnable()
         {
-            _input.Player.Enable();
-            _input.Player.Move.performed += ctx => _moveInput = ctx.ReadValue<Vector2>();
-            _input.Player.Move.canceled += _ => _moveInput = Vector2.zero;
-            _input.Player.Look.performed += ctx => _rawLookInput = ctx.ReadValue<Vector2>();
-            _input.Player.Look.canceled += _ => _rawLookInput = Vector2.zero;
-            _input.Player.Jump.performed += _ => Jump();
-            _input.Player.Crouch.performed += _ => CrouchToggle();
+            _currentMap.Enable();
+            _currentMap["Move"].performed += ctx => _moveInput = ctx.ReadValue<Vector2>();
+            _currentMap["Move"].canceled += _ => _moveInput = Vector2.zero;
+            _currentMap["Look"].performed += ctx => _rawLookInput = ctx.ReadValue<Vector2>();
+            _currentMap["Look"].canceled += _ => _rawLookInput = Vector2.zero;
+            _currentMap["Jump"].performed += _ => Jump();
+            _currentMap["Crouch"].performed += _ => CrouchToggle();
         }
 
         void OnDisable()
         {
-            _input.Player.Disable();
+            _currentMap.Disable();
         }
 
         void FixedUpdate()
@@ -79,7 +86,7 @@ namespace Black_Orbit.Scripts.FPS
             CheckGrounded();
         }
 
-        void Update()
+        void LateUpdate()
         {
             Look();
         }
@@ -95,6 +102,8 @@ namespace Black_Orbit.Scripts.FPS
             _rb.linearVelocity = math.lerp(_rb.linearVelocity, targetVelocity, lerpFactor);
             // Наклон камеры при боковом движении
             _targetTilt = -_moveInput.x * strafeTiltAngle;
+
+            _animator.Move(transform.InverseTransformDirection(_rb.linearVelocity));
         }
 
         void Jump()
@@ -113,19 +122,21 @@ namespace Black_Orbit.Scripts.FPS
         {
             _isCrouching = !_isCrouching;
             _col.height = _isCrouching ? crouchHeight : _originalHeight;
-            Vector3 camPos = cameraHolder.localPosition;
+            Vector3 camPos = camera.localPosition;
             camPos.y = _isCrouching ? crouchHeight - 0.5f : _originalHeight - 0.5f;
-            cameraHolder.localPosition = camPos;
+            camera.localPosition = camPos;
         }
 
         void CheckGrounded()
         {
-            Ray ray = new Ray(transform.position, Vector3.down);
-            _isGrounded = Physics.Raycast(ray, (_col.height / 2f) + 0.1f);
+            Ray ray = new Ray(transform.position + Vector3.up * 0.05f, Vector3.down);
+            _isGrounded = Physics.Raycast(ray,  0.1f);
+            Debug.DrawRay(transform.position + Vector3.up * 0.05f, Vector3.down * 0.1f, _isGrounded ? Color.green : Color.red);
         }
 
         void Look()
         {
+            camera.position = cameraHolder.position;
             float lerpFactor = math.clamp(1f - math.pow(cameraInertia, Time.deltaTime * 10), 0.001f, 1f);
             _smoothLookInput = math.lerp(_smoothLookInput, _rawLookInput, lerpFactor);
 
@@ -144,11 +155,11 @@ namespace Black_Orbit.Scripts.FPS
             }
 
             // Плавный наклон камеры вбок (roll)
-            _currentTilt = math.lerp(_currentTilt, _targetTilt, math.max(Time.deltaTime * strafeTiltSpeed, 0.01f));
-
+            _currentTilt = math.lerp(_currentTilt, _targetTilt, math.max(Time.smoothDeltaTime * strafeTiltSpeed, 0.01f));
             // Применяем итоговое вращение
-            cameraHolder.localRotation = Quaternion.Euler(_lookX + _jumpKickOffset, 0f, _currentTilt);
-            transform.rotation = Quaternion.Euler(0f, _lookY, 0f);
+            camera.localRotation = Quaternion.Euler(_lookX + _jumpKickOffset, 0f, _currentTilt);
+
+            _rb.MoveRotation(Quaternion.Euler(0, _lookY, 0));
         }
     }
 }
