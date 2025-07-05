@@ -10,6 +10,7 @@ namespace Black_Orbit.Scripts.FPS
     {
         [Header("Movement")]
         [SerializeField] private float moveSpeed = 5f;
+        [SerializeField] private float runSpeedMultiply = 2f;
         [Range(0f, 1f)]
         [SerializeField] private float movementInertia = 0.5f;
         [SerializeField] private float crouchSpeed = 2.5f;
@@ -52,6 +53,7 @@ namespace Black_Orbit.Scripts.FPS
         private float _currentXRotation;
         private InputActionMap _currentMap;
         CharacterAnimator _animator;
+        private bool _isRunning;
 
         void Awake()
         {
@@ -73,6 +75,12 @@ namespace Black_Orbit.Scripts.FPS
             _currentMap["Look"].canceled += _ => _rawLookInput = Vector2.zero;
             _currentMap["Jump"].performed += _ => Jump();
             _currentMap["Crouch"].performed += _ => CrouchToggle();
+            _currentMap["Run"].performed += _ => _isRunning = true;
+            _currentMap["Run"].canceled += _ => _isRunning = false;
+        }
+
+        void RunToggle()
+        {
         }
 
         void OnDisable()
@@ -95,15 +103,18 @@ namespace Black_Orbit.Scripts.FPS
         {
             Vector3 move = transform.right * _moveInput.x + transform.forward * _moveInput.y;
             float speed = _isCrouching ? crouchSpeed : moveSpeed;
-
+            speed *= _isRunning ? runSpeedMultiply : 1f;
+            _animator.Crouch(_isCrouching);
+            _animator.Run(_isRunning);
+            
             Vector3 targetVelocity = new Vector3(move.x * speed, _rb.linearVelocity.y, move.z * speed);
             float lerpFactor = math.clamp(1f - math.pow(movementInertia, Time.deltaTime * 10), 0.001f, 1f);
 
             _rb.linearVelocity = math.lerp(_rb.linearVelocity, targetVelocity, lerpFactor);
             // Наклон камеры при боковом движении
             _targetTilt = -_moveInput.x * strafeTiltAngle;
-
-            _animator.Move(transform.InverseTransformDirection(_rb.linearVelocity));
+            Vector3 velocityLocal = transform.InverseTransformDirection(_rb.linearVelocity);
+            _animator.Move(new Vector2(velocityLocal.x, velocityLocal.z));
         }
 
         void Jump()
@@ -130,7 +141,7 @@ namespace Black_Orbit.Scripts.FPS
         void CheckGrounded()
         {
             Ray ray = new Ray(transform.position + Vector3.up * 0.05f, Vector3.down);
-            _isGrounded = Physics.Raycast(ray,  0.1f);
+            _isGrounded = Physics.Raycast(ray, 0.1f);
             Debug.DrawRay(transform.position + Vector3.up * 0.05f, Vector3.down * 0.1f, _isGrounded ? Color.green : Color.red);
         }
 
