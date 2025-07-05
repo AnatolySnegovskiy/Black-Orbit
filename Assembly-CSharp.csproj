@@ -46,11 +46,21 @@
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.1.8f1\Editor\Data\Tools\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Black Orbit\Scripts\Weapon\BulletScriptableObject.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Runtime\PooledBullet.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\Muzzle.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\Core\Pooling\ObjectPool.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\IWeapon.cs" />
     <Compile Include="Assets\Samples\Animation Rigging\1.3.0\Animation Rigging Constraint Samples\Scripts\mParent.cs" />
-    <Compile Include="Assets\Black Orbit\Scripts\Weapon\WeaponScriptableObject.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Runtime\PlayerWeaponHandler.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\ScriptableObjects\WeaponScriptableObject.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Runtime\BulletPoolManager.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Runtime\StandardWeapon.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\FPS\CharacterAnimator.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\ScriptableObjects\BulletScriptableObject.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\FPS\FirstPersonController.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Enums\WeaponType.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\IDamageable.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\BaseWeapon.cs" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile-2-Pass.shader" />

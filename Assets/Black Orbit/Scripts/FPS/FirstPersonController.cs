@@ -29,7 +29,7 @@ namespace Black_Orbit.Scripts.FPS
 
         [Header("Camera")]
         [SerializeField] private Transform cameraHolder;
-        [SerializeField] private Transform camera;
+        [SerializeField] private Transform localCamera;
         [Range(0.1f, 1f)]
         [SerializeField] private float lookSensitivity = 0.2f;
         [Range(0f, 1f)]
@@ -55,6 +55,23 @@ namespace Black_Orbit.Scripts.FPS
         CharacterAnimator _animator;
         private bool _isRunning;
 
+        // ---- Action handlers ----
+
+        private void OnMovePerformed(InputAction.CallbackContext ctx) => _moveInput = ctx.ReadValue<Vector2>();
+        private void OnMoveCanceled(InputAction.CallbackContext ctx) => _moveInput = Vector2.zero;
+
+        private void OnLookPerformed(InputAction.CallbackContext ctx) => _rawLookInput = ctx.ReadValue<Vector2>();
+        private void OnLookCanceled(InputAction.CallbackContext ctx) => _rawLookInput = Vector2.zero;
+
+        private void OnJump(InputAction.CallbackContext ctx) => Jump();
+
+        private void OnCrouchToggle(InputAction.CallbackContext ctx) => CrouchToggle();
+
+        private void OnRunStarted(InputAction.CallbackContext ctx) => _isRunning = true;
+        private void OnRunCanceled(InputAction.CallbackContext ctx) => _isRunning = false;
+
+        // ---- Your actions ----
+        
         void Awake()
         {
             _animator = new CharacterAnimator(GetComponent<Animator>());
@@ -69,22 +86,37 @@ namespace Black_Orbit.Scripts.FPS
         void OnEnable()
         {
             _currentMap.Enable();
-            _currentMap["Move"].performed += ctx => _moveInput = ctx.ReadValue<Vector2>();
-            _currentMap["Move"].canceled += _ => _moveInput = Vector2.zero;
-            _currentMap["Look"].performed += ctx => _rawLookInput = ctx.ReadValue<Vector2>();
-            _currentMap["Look"].canceled += _ => _rawLookInput = Vector2.zero;
-            _currentMap["Jump"].performed += _ => Jump();
-            _currentMap["Crouch"].performed += _ => CrouchToggle();
-            _currentMap["Run"].performed += _ => _isRunning = true;
-            _currentMap["Run"].canceled += _ => _isRunning = false;
-        }
 
-        void RunToggle()
-        {
+            _currentMap["Move"].performed += OnMovePerformed;
+            _currentMap["Move"].canceled += OnMoveCanceled;
+
+            _currentMap["Look"].performed += OnLookPerformed;
+            _currentMap["Look"].canceled += OnLookCanceled;
+
+            _currentMap["Jump"].performed += OnJump;
+
+            _currentMap["Crouch"].performed += OnCrouchToggle;
+
+            _currentMap["Run"].performed += OnRunStarted;
+            _currentMap["Run"].canceled += OnRunCanceled;
         }
 
         void OnDisable()
         {
+            
+            _currentMap["Move"].performed -= OnMovePerformed;
+            _currentMap["Move"].canceled -= OnMoveCanceled;
+
+            _currentMap["Look"].performed -= OnLookPerformed;
+            _currentMap["Look"].canceled -= OnLookCanceled;
+
+            _currentMap["Jump"].performed -= OnJump;
+
+            _currentMap["Crouch"].performed -= OnCrouchToggle;
+
+            _currentMap["Run"].performed -= OnRunStarted;
+            _currentMap["Run"].canceled -= OnRunCanceled;
+            
             _currentMap.Disable();
         }
 
@@ -133,9 +165,9 @@ namespace Black_Orbit.Scripts.FPS
         {
             _isCrouching = !_isCrouching;
             _col.height = _isCrouching ? crouchHeight : _originalHeight;
-            Vector3 camPos = camera.localPosition;
+            Vector3 camPos = localCamera.localPosition;
             camPos.y = _isCrouching ? crouchHeight - 0.5f : _originalHeight - 0.5f;
-            camera.localPosition = camPos;
+            localCamera.localPosition = camPos;
         }
 
         void CheckGrounded()
@@ -147,7 +179,7 @@ namespace Black_Orbit.Scripts.FPS
 
         void Look()
         {
-            camera.position = cameraHolder.position;
+            localCamera.position = cameraHolder.position;
             float lerpFactor = math.clamp(1f - math.pow(cameraInertia, Time.deltaTime * 10), 0.001f, 1f);
             _smoothLookInput = math.lerp(_smoothLookInput, _rawLookInput, lerpFactor);
 
@@ -168,7 +200,7 @@ namespace Black_Orbit.Scripts.FPS
             // Плавный наклон камеры вбок (roll)
             _currentTilt = math.lerp(_currentTilt, _targetTilt, math.max(Time.smoothDeltaTime * strafeTiltSpeed, 0.01f));
             // Применяем итоговое вращение
-            camera.localRotation = Quaternion.Euler(_lookX + _jumpKickOffset, 0f, _currentTilt);
+            localCamera.localRotation = Quaternion.Euler(_lookX + _jumpKickOffset, 0f, _currentTilt);
 
             _rb.MoveRotation(Quaternion.Euler(0, _lookY, 0));
         }

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Black_Orbit.Scripts.Weapon
+namespace Black_Orbit.Scripts.WeaponSystem.ScriptableObjects
 {
     /// <summary>
     /// ScriptableObject для настройки всех параметров пули
@@ -28,9 +28,6 @@ namespace Black_Orbit.Scripts.Weapon
         
         [Tooltip("Масштаб пули (размер)")]
         public float bulletSize;
-        
-        [Tooltip("Визуальный эффект шлейфа за пулей (если null - шлейфа не будет)")]
-        public TrailRenderer bulletTrail;
 
         [Header("Explosion Settings")]
         [Tooltip("Радиус взрыва пули (если 0 - нет взрывного эффекта)")]
@@ -38,5 +35,21 @@ namespace Black_Orbit.Scripts.Weapon
         
         [Tooltip("Сила взрывной волны (если применимо)")]
         public float bulletExplosionForce;
+        
+        [Header("Ricochet Settings")]
+        [Tooltip("Максимальное количество рикошетов")]
+        public int maxRicochets = 0;
+        
+        [Tooltip("Шанс рикошета при столкновении (0–1)")]
+        [Range(0f, 1f)]
+        public float ricochetChance = 0.3f;
+
+        [Tooltip("Минимальный угол отражения (в градусах), ниже которого рикошет не происходит")]
+        [Range(0f, 90f)]
+        public float minRicochetAngle = 20f;
+
+        [Tooltip("Множитель урона после каждого рикошета (0.5 = 50%)")]
+        [Range(0f, 1f)]
+        public float ricochetDamageMultiplier = 0.7f;
     }
 }
