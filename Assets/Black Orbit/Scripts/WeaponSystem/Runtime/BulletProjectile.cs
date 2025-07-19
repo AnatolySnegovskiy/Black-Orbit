@@ -96,7 +96,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
 
             if (!TryRicochetOrReturn(normal, point))
             {
-                //ReturnToPool();
+                ReturnToPool();
             }
 
             var surface = collider.GetComponent<ImpactSurface>();
