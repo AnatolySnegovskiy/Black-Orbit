@@ -113,6 +113,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             _hasProcessedHitThisFrame = true;
         }
 
+
         private void ApplyDirectHitDamage(Collider collisionCollider)
         {
             var hit = collisionCollider.GetComponent<IDamageable>();
@@ -161,6 +162,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             Debug.DrawRay(hitPoint, incomingDir, Color.yellow, 2f);
             Debug.Log($"[Ricochet] Hit angle: {angle:F1}° | RicochetChance: {_data.ricochetChance} | RicochetCount: {_ricochetCount}");
 #endif
+
 
             bool isRicochetAngleValid = angle >= _data.minRicochetAngle && angle < 89f;
             float chance = _data.ricochetChance * Mathf.Pow(_data.ricochetChanceFalloff, _ricochetCount);

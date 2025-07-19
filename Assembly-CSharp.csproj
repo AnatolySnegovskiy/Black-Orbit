@@ -51,6 +51,7 @@
     <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\Hand.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\ImpactSystem\ScriptableObjects\ImpactSurfaceDatabase.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\ImpactSystem\Runtime\PooledImpactObject.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\ImpactSystem\Runtime\ImpactSurface.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\Core\Pooling\ObjectPool.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\Core\Base\IGameSystem.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\ImpactSystem\Data\SurfaceType.cs" />
@@ -69,6 +70,7 @@
     <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\IDamageable.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\BaseWeapon.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\Core\GameRunner.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Runtime\BulletProjectile.cs" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile-2-Pass.shader" />

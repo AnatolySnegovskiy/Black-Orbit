@@ -17,10 +17,7 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
         public string materialProperty = DefaultProperty;
 
         [Tooltip("ID поверхности по умолчанию, если карта отсутствует")]
-        [Range(0, 255)]
-        public int defaultSurfaceId;
 
-        /// <summary>
         /// Возвращает ID поверхности из заданной карты или материала.
         /// </summary>
         /// <param name="uv">Текстурные координаты точки столкновения.</param>
