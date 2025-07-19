@@ -174,7 +174,9 @@ namespace Black_Orbit.Scripts.FPS
         {
             Ray ray = new Ray(transform.position + Vector3.up * 0.05f, Vector3.down);
             _isGrounded = Physics.Raycast(ray, 0.1f);
+#if UNITY_EDITOR
             Debug.DrawRay(transform.position + Vector3.up * 0.05f, Vector3.down * 0.1f, _isGrounded ? Color.green : Color.red);
+#endif
         }
 
         void Look()

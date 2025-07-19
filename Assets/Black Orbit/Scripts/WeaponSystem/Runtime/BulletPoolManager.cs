@@ -10,49 +10,55 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
     {
         public static BulletPoolManager Instance { get; private set; }
 
-        private readonly Dictionary<BulletScriptableObject, ObjectPool<PooledBullet>> _pools = new();
+    private readonly Dictionary<BulletScriptableObject, ObjectPool<BulletProjectile>> _pools = new();
 
         public void Initialize()
         {
             if (Instance != null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[BulletPoolManager] Initialized twice!");
+#endif
                 return;
             }
 
             Instance = this;
+#if UNITY_EDITOR
             Debug.Log("[BulletPoolManager] Initialized.");
+#endif
             // Остальная логика старта
         }
 
-        void Init(BulletScriptableObject bulletData, int desiredCount, out ObjectPool<PooledBullet> pool)
+    void Init(BulletScriptableObject bulletData, int desiredCount, out ObjectPool<BulletProjectile> pool)
         {
-            var prefab = bulletData.bulletPrefab.GetComponent<PooledBullet>();
+        var prefab = bulletData.bulletPrefab.GetComponent<BulletProjectile>();
             if (prefab == null)
             {
-                Debug.LogError($"Bullet prefab {bulletData.name} не содержит компонент PooledBullet");
+#if UNITY_EDITOR
+                Debug.LogError($"Bullet prefab {bulletData.name} не содержит компонент BulletProjectile");
+#endif
                 pool = null;
                 return;
             }
             
             prefab.BulletData = bulletData;
-            pool = new ObjectPool<PooledBullet>(prefab, desiredCount, transform);
+        pool = new ObjectPool<BulletProjectile>(prefab, desiredCount, transform);
             _pools.Add(bulletData, pool);
         }
         
-        public PooledBullet GetBullet(BulletScriptableObject bulletData, int desiredCount = 10)
+    public BulletProjectile GetBullet(BulletScriptableObject bulletData, int desiredCount = 10)
         {
             if (!_pools.TryGetValue(bulletData, out var pool))
             {
                 Init(bulletData, desiredCount, out pool);
             }
             
-            PooledBullet bullet = pool.Get();
+        BulletProjectile bullet = pool.Get();
             bullet.BulletData = bulletData;
             return bullet;
         }
 
-        public void ReturnBullet(BulletScriptableObject bulletData, PooledBullet bullet)
+    public void ReturnBullet(BulletScriptableObject bulletData, BulletProjectile bullet)
         {
             if (_pools.TryGetValue(bulletData, out var pool))
             {
@@ -60,8 +66,10 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"Пул для {bulletData.name} не найден при возврате пули");
-                Destroy(bullet.gameObject); // fallback
+#endif
+                Destroy(bullet.gameObject); // если пула нет, уничтожаем пулю
             }
         }
         
