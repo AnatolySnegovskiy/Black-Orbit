@@ -16,12 +16,12 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
         {
             if (Instance != null)
             {
-                Debug.LogError("[ImpactManager] Initialized twice!");
+                Debug.LogError("[BulletPoolManager] Initialized twice!");
                 return;
             }
 
             Instance = this;
-            Debug.Log("[ImpactManager] Initialized.");
+            Debug.Log("[BulletPoolManager] Initialized.");
             // Остальная логика старта
         }
 
