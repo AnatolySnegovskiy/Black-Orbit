@@ -99,8 +99,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
                 //ReturnToPool();
             }
 
-            var surface = collider.GetComponent<ImpactSurface>();
-            int surfaceId = surface != null ? surface.GetSurfaceId(texCoord) : 0;
+            int surfaceId = ImpactSurface.GetSurfaceId(collider, texCoord);
             ImpactManager.Instance?.HandleImpact(point, normal, surfaceId);
             lithit.Add(point);
         }
