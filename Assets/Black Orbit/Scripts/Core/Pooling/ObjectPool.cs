@@ -1,34 +1,28 @@
-﻿namespace Black_Orbit.Scripts.Core.Pooling
-{
-    using System.Collections.Generic;
-    using UnityEngine;
+﻿using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using UnityEngine;
 
-    /// <summary>
-    /// Универсальный пул объектов для Unity.
-    /// Позволяет переиспользовать объекты вместо постоянного Instantiate/Destroy.
-    /// </summary>
-    /// <typeparam name="T">Тип компонента, который должен быть наследником Component</typeparam>
+namespace Black_Orbit.Scripts.Core.Pooling
+{
     public class ObjectPool<T> where T : Component
     {
         private readonly T _prefab;
         private readonly Stack<T> _pool = new Stack<T>();
         private readonly Transform _parent;
+        private readonly int _expireMilliseconds;
 
-        /// <summary>
-        /// Создает пул с указанным префабом и начальным размером.
-        /// </summary>
-        /// <param name="prefab">Префаб для создания новых объектов</param>
-        /// <param name="initialSize">Количество объектов, создаваемых сразу</param>
-        /// <param name="parent">Родитель для объектов пула (опционально)</param>
-        public ObjectPool(T prefab, int initialSize, Transform parent = null)
+        private readonly Dictionary<T, CancellationTokenSource> _activeTokens = new Dictionary<T, CancellationTokenSource>();
+
+        public ObjectPool(T prefab, int initialSize, Transform parent = null, float expireSeconds = 60f)
         {
             _prefab = prefab;
             _parent = parent;
+            _expireMilliseconds = (int)(expireSeconds * 1000f);
 
             for (int i = 0; i < initialSize; i++)
             {
-                var instance = CreateInstance();
-                _pool.Push(instance);
+                _pool.Push(CreateInstance());
             }
         }
 
@@ -39,10 +33,6 @@
             return instance;
         }
 
-        /// <summary>
-        /// Получить объект из пула (активируется автоматически).
-        /// Если пул пуст, создается новый объект.
-        /// </summary>
         public T Get()
         {
             if (_pool.Count == 0)
@@ -52,32 +42,68 @@
 
             var obj = _pool.Pop();
             obj.gameObject.SetActive(true);
+
+            StartExpireTimer(obj);
+
             return obj;
         }
 
-        /// <summary>
-        /// Вернуть объект обратно в пул (деактивируется).
-        /// </summary>
         public void ReturnToPool(T obj)
         {
+            if (_activeTokens.TryGetValue(obj, out var token))
+            {
+                token.Cancel();
+                _activeTokens.Remove(obj);
+            }
+
             obj.gameObject.SetActive(false);
             _pool.Push(obj);
         }
 
-        public void ExpandPoolIfNeeded(int desiredCount)
+        private void StartExpireTimer(T obj)
         {
-            while (_pool.Count < desiredCount)
+            if (_activeTokens.TryGetValue(obj, out var existingToken))
             {
-                _pool.Push(CreateInstance());
+                existingToken.Cancel();
+            }
+
+            var cts = new CancellationTokenSource();
+            _activeTokens[obj] = cts;
+
+            AutoReturnAsync(obj, cts.Token);
+        }
+
+        private async void AutoReturnAsync(T obj, CancellationToken token)
+        {
+            try
+            {
+                await Task.Delay(_expireMilliseconds, token);
+                if (!token.IsCancellationRequested)
+                {
+                    ReturnToPool(obj);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // Нормальная отмена — ничего делать не нужно
             }
         }
 
         public void ClearPool()
         {
+            foreach (var pair in _activeTokens)
+            {
+                pair.Value.Cancel();
+                if (pair.Key != null)
+                    Object.Destroy(pair.Key.gameObject);
+            }
+            _activeTokens.Clear();
+
             while (_pool.Count > 0)
             {
                 var obj = _pool.Pop();
-                Object.Destroy(obj.gameObject);
+                if (obj != null)
+                    Object.Destroy(obj.gameObject);
             }
         }
     }

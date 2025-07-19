@@ -44,5 +44,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf727b4e550843aa8634f61200f0426c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  surfaceDatabase: {fileID: 0}
+  surfaceDatabase: {fileID: 11400000, guid: 192a62b7ab594db418fa1fa470ab4c93, type: 2}
   initialPoolSize: 10

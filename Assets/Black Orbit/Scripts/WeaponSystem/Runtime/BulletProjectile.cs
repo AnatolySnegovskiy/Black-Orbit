@@ -1,19 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Black_Orbit.Scripts.Core.helper;
 using Black_Orbit.Scripts.WeaponSystem.Base;
 using Black_Orbit.Scripts.WeaponSystem.ScriptableObjects;
 using Black_Orbit.Scripts.ImpactSystem.Runtime;
-using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Black_Orbit.Scripts.WeaponSystem.Runtime
 {
     [RequireComponent(typeof(Rigidbody))]
-    /// <summary>
-    /// Класс пули, используемой пулом объектов.
-    /// Отвечает за физику, столкновения и эффекты попадания.
-    /// </summary>
+    // <summary>
+    // Класс пули, используемой пулом объектов.
+    // Отвечает за физику, столкновения и эффекты попадания.
+    // </summary>
     public class BulletProjectile : MonoBehaviour
     {
         // Эффекты попадания теперь обрабатываются через ImpactManager
@@ -49,7 +48,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             {
                 if (!_hasProcessedHitThisFrame)
                 {
-                    HandleHit(hit.collider, hit.point, hit.normal, hit.textureCoord);
+                    HandleHit(hit.collider, hit.point, hit.normal, UVHitDetector.GetHitUV(hit));
                     _hasProcessedHitThisFrame = true;
                 }
             }
@@ -71,37 +70,33 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             transform.rotation = Quaternion.LookRotation(direction);
             transform.localScale = _localScale * _data.bulletSize;
             _rb.linearVelocity = direction * _data.bulletSpeed;
-
-            CancelInvoke();
-            Invoke(nameof(ReturnToPool), _data.bulletLifeTime);
         }
 
-        private List<Vector3> lithit = new List<Vector3>();
-        
-        private void HandleHit(Collider collider, Vector3 point, Vector3 normal, Vector2 texCoord)
+        private List<Vector3> _lithit = new List<Vector3>();
+
+        private void HandleHit(Collider hitCollider, Vector3 point, Vector3 normal, Vector2 texCoord)
         {
             Vector3 bulletVelocity = _rb.linearVelocity;
             float bulletMass = _rb.mass;
 
             Vector3 impulse = bulletVelocity * bulletMass;
-            Rigidbody col = collider.GetComponent<Rigidbody>();
+            Rigidbody col = hitCollider.GetComponent<Rigidbody>();
             if (col != null)
             {
                 col.AddForceAtPosition(impulse, point, ForceMode.Impulse);
             }
 
-
-            ApplyDirectHitDamage(collider);
+            ApplyDirectHitDamage(hitCollider);
             ApplyExplosionDamage();
 
             if (!TryRicochetOrReturn(normal, point))
             {
-                // Можно вернуть пулю в пул
+                ReturnToPool();
             }
 
-            int surfaceId = ImpactSurface.GetSurfaceId(collider, texCoord);
+            int surfaceId = ImpactSurface.GetSurfaceId(hitCollider, texCoord);
             ImpactManager.Instance?.HandleImpact(point, normal, surfaceId);
-            lithit.Add(point);
+            _lithit.Add(point);
         }
 
         private void OnCollisionEnter(Collision collision)
@@ -153,7 +148,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
 #endif
                 return false;
             }
-            
+
             Vector3 incomingDir = _rb.linearVelocity.normalized;
             float angle = Vector3.Angle(-incomingDir, hitNormal);
 
@@ -174,14 +169,14 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
 #if UNITY_EDITOR
                     Debug.LogWarning($"[Ricochet] Unnatural hit angle: {angle:F1}° — position: {hitPoint}");
 #endif
-                
+
                 _ricochetCount++;
                 _multiplier *= _data.ricochetDamageMultiplier;
 
                 Vector3 reflectDir = GetRicochetDirection(incomingDir, hitNormal, angle);
 
                 float speedLoss = Mathf.Clamp01(1f - (angle / 90f) * 0.5f);
-                _rb.linearVelocity = reflectDir * _data.bulletSpeed * speedLoss;
+                _rb.linearVelocity = reflectDir * (_data.bulletSpeed * speedLoss);
                 transform.rotation = Quaternion.LookRotation(reflectDir);
 
 #if UNITY_EDITOR
@@ -211,10 +206,10 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             return deviatedReflect;
         }
 
-        private Vector2 GetTextureCoord(Collider collider, Vector3 point, Vector3 normal)
+        private Vector2 GetTextureCoord(Collider hitCollider, Vector3 point, Vector3 normal)
         {
-            if (collider.Raycast(new Ray(point + normal * 0.01f, -normal), out RaycastHit hit, 0.02f))
-                return hit.textureCoord;
+            if (hitCollider.Raycast(new Ray(point + normal * 0.01f, -normal), out RaycastHit hit, 0.02f))
+                return UVHitDetector.GetHitUV(hit);
             return Vector2.zero;
         }
 
@@ -225,19 +220,19 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             _pool.ReturnBullet(_data, this);
         }
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         private void OnDrawGizmos()
         {
-            if (lithit == null || lithit.Count < 2)
+            if (_lithit == null || _lithit.Count < 2)
                 return;
 
             Gizmos.color = Color.yellow; // цвет линий
 
-            for (int i = 0; i < lithit.Count - 1; i++)
+            for (int i = 0; i < _lithit.Count - 1; i++)
             {
-                Gizmos.DrawLine(lithit[i], lithit[i + 1]);
+                Gizmos.DrawLine(_lithit[i], _lithit[i + 1]);
             }
         }
-        #endif
+#endif
     }
 }

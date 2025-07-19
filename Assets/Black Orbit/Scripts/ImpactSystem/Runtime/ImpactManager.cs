@@ -13,8 +13,8 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
         [SerializeField] private ImpactSurfaceDatabase surfaceDatabase;
         [SerializeField] private int initialPoolSize = 10;
 
-        private readonly Dictionary<GameObject, ObjectPool<PooledImpactObject>> _effectPools = new();
-        private readonly Dictionary<GameObject, ObjectPool<PooledImpactObject>> _decalPools = new();
+        private readonly Dictionary<GameObject, ObjectPool<Transform>> _effectPools = new();
+        private readonly Dictionary<GameObject, ObjectPool<Transform>> _decalPools = new();
 
         public ImpactSurfaceDatabase SurfaceDatabase => surfaceDatabase;
 
@@ -35,56 +35,54 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
 #endif
         }
 
-        public void HandleImpact(Vector3 position, Vector3 normal, int surfaceID, float scale = 1f)
+        public void HandleImpact(Vector3 position, Vector3 normal, int surfaceID)
         {
             var surfaceEntry = surfaceDatabase.GetSurfaceEntry(surfaceID);
 
             if (surfaceEntry.impactEffectPrefab != null)
-                SpawnFromPool(surfaceEntry.impactEffectPrefab, position, normal, scale, _effectPools);
+                SpawnFromPool(surfaceEntry.impactEffectPrefab, position, normal, 1f, _effectPools);
 
             if (surfaceEntry.decalPrefab != null)
-                SpawnFromPool(surfaceEntry.decalPrefab, position, normal, scale, _decalPools);
+                SpawnFromPool(surfaceEntry.decalPrefab, position, normal, surfaceEntry.impactScaleMultiplier, _decalPools);
 
             if (surfaceEntry.impactSound != null)
                 AudioSource.PlayClipAtPoint(surfaceEntry.impactSound, position);
         }
 
-        private void SpawnFromPool(GameObject prefab, Vector3 position, Vector3 normal, float scale, Dictionary<GameObject, ObjectPool<PooledImpactObject>> poolDict)
+        private void SpawnFromPool(GameObject prefab, Vector3 position, Vector3 normal, float scale, Dictionary<GameObject, ObjectPool<Transform>> poolDict)
         {
             if (!poolDict.TryGetValue(prefab, out var pool))
             {
-                var impactComponent = prefab.GetComponent<PooledImpactObject>();
+                var impactComponent = prefab.GetComponent<Transform>();
                 if (impactComponent == null)
                 {
 #if UNITY_EDITOR
-                    Debug.LogError($"Префаб {prefab.name} должен содержать компонент PooledImpactObject");
+                    Debug.LogError($"Префаб {prefab.name} должен содержать компонент Transform");
 #endif
                     return;
                 }
 
-                pool = new ObjectPool<PooledImpactObject>(impactComponent, initialPoolSize, transform);
+                pool = new ObjectPool<Transform>(impactComponent, initialPoolSize, transform);
                 poolDict[prefab] = pool;
             }
 
             var instance = pool.Get();
             instance.transform.SetPositionAndRotation(position, Quaternion.LookRotation(normal));
-            instance.transform.localScale = Vector3.one * scale;
-            instance.Initialize(pool);
-            instance.ReturnToPool(); // Вернётся в пул через 5 секунд по умолчанию
+            instance.transform.localScale = Vector3.one * (scale == 0f ? 1f : scale);
         }
-        
+
         public void Shutdown()
         {
             foreach (var pool in _effectPools.Values)
             {
                 pool.ClearPool();
             }
-            
+
             foreach (var pool in _decalPools.Values)
             {
                 pool.ClearPool();
             }
-            
+
             _effectPools.Clear();
             _decalPools.Clear();
             Instance = null;
