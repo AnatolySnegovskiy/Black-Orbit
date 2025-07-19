@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3719900811266344545}
   - component: {fileID: -183080804732394737}
   - component: {fileID: 7509667922832155634}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: BulletPrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -68,6 +68,7 @@ MeshRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 73c176f402d2c2f4d929aa5da7585d17, type: 2}
+  - {fileID: 2100000, guid: 98429511ce0f6594dbdd4059c6824097, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -118,7 +119,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 598479900316638610}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 0.0034
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -136,7 +137,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 2
 --- !u!114 &7509667922832155634
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -149,3 +150,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 289ea07592d04d38b84575bdf59c6eba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  inpactEffect: {fileID: 5245542156791374066, guid: 2151635639b557140bb4659ab5e5b367, type: 3}
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 115

@@ -1,26 +1,28 @@
 ﻿using System.Collections.Generic;
+using Black_Orbit.Scripts.Core.Base;
 using Black_Orbit.Scripts.Core.Pooling;
 using UnityEngine;
 using Black_Orbit.Scripts.WeaponSystem.ScriptableObjects;
 
 namespace Black_Orbit.Scripts.WeaponSystem.Runtime
 {
-    public class BulletPoolManager : MonoBehaviour
+    public class BulletPoolManager : MonoBehaviour, IGameSystem
     {
         public static BulletPoolManager Instance { get; private set; }
 
         private readonly Dictionary<BulletScriptableObject, ObjectPool<PooledBullet>> _pools = new();
 
-        private void Awake()
+        public void Initialize()
         {
             if (Instance != null)
             {
-                Destroy(gameObject);
+                Debug.LogError("[ImpactManager] Initialized twice!");
                 return;
             }
 
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            Debug.Log("[ImpactManager] Initialized.");
+            // Остальная логика старта
         }
 
         void Init(BulletScriptableObject bulletData, int desiredCount, out ObjectPool<PooledBullet> pool)
@@ -62,5 +64,16 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
                 Destroy(bullet.gameObject); // fallback
             }
         }
+        
+        public void Shutdown()
+        {
+            foreach (var pool in _pools.Values)
+            {
+                pool.ClearPool();
+            }
+            
+            _pools.Clear();
+            Instance = null;
+        }   
     }
 }

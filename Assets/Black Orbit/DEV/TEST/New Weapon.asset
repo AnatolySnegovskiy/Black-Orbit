@@ -18,7 +18,7 @@ MonoBehaviour:
   weaponType: 0
   fireRate: 500
   initialFireDelay: 0
-  spreadAngle: 1
+  spreadAngle: 0
   bulletsPerShot: 1
   magazineSize: 60
   reloadTime: 0

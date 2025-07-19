@@ -37,18 +37,20 @@ namespace Black_Orbit.Scripts.WeaponSystem.ScriptableObjects
         public float bulletExplosionForce;
         
         [Header("Ricochet Settings")]
-        [Tooltip("Максимальное количество рикошетов")]
-        public int maxRicochets = 0;
         
-        [Tooltip("Шанс рикошета при столкновении (0–1)")]
+        [Tooltip("Базовый шанс рикошета при столкновении (0–1)")]
         [Range(0f, 1f)]
         public float ricochetChance = 0.3f;
+        
+        [Tooltip("Коэффициент уменьшения шанса рикошета после каждого отскока (0–1)")]
+        [Range(0f, 1f)]
+        public float ricochetChanceFalloff = 0.5f;
 
-        [Tooltip("Минимальный угол отражения (в градусах), ниже которого рикошет не происходит")]
+        [Tooltip("Минимальный угол между пулей и поверхностью, при котором возможен рикошет (в градусах)")]
         [Range(0f, 90f)]
         public float minRicochetAngle = 20f;
 
-        [Tooltip("Множитель урона после каждого рикошета (0.5 = 50%)")]
+        [Tooltip("Множитель урона после каждого рикошета (например, 0.7 = 70%)")]
         [Range(0f, 1f)]
         public float ricochetDamageMultiplier = 0.7f;
     }

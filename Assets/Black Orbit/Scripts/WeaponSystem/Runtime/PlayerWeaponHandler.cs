@@ -9,7 +9,8 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
     public class PlayerWeaponHandler : MonoBehaviour
     {
         [SerializeField] private WeaponScriptableObject weaponData;
-
+        [SerializeField] private Transform rightHand;
+        [SerializeField] private Transform leftHand;
         private IWeapon _weapon;
         private InputActionMap _currentMap;
 
@@ -28,6 +29,9 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             }
 
             GameObject weaponGo = Instantiate(weaponData.weaponPrefab, transform);
+            
+            HandPositioning(weaponGo);
+            
             var muzzle = weaponGo.GetComponentInChildren<Muzzle>();
             if (muzzle == null)
             {
@@ -41,6 +45,22 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             _currentMap["Reload"].performed += OnReload;
             _currentMap["Fire"].performed += OnFireStart;
             _currentMap["Fire"].canceled += OnFireStop;
+        }
+
+        private void HandPositioning(GameObject weaponGo)
+        {
+            foreach (Hand hend in weaponGo.GetComponentsInChildren<Hand>())
+            {
+                if (hend.HandType == Hand.Type.Left)
+                {
+                    leftHand.position = hend.transform.position;
+                    leftHand.rotation = hend.transform.rotation;
+                } else
+                {
+                    rightHand.position = hend.transform.position;
+                    rightHand.rotation = hend.transform.rotation;
+                }
+            }
         }
 
         private void OnDestroy()

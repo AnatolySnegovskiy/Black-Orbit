@@ -71,5 +71,14 @@
                 _pool.Push(CreateInstance());
             }
         }
+
+        public void ClearPool()
+        {
+            while (_pool.Count > 0)
+            {
+                var obj = _pool.Pop();
+                Object.Destroy(obj.gameObject);
+            }
+        }
     }
 }

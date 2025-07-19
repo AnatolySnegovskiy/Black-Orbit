@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: New Bullet
   m_EditorClassIdentifier: 
   bulletPrefab: {fileID: 598479900316638610, guid: 860c270ab85a83b449798b0edd2b9370, type: 3}
-  bulletSpeed: 100
+  bulletSpeed: 1000
   bulletLifeTime: 60
   bulletDamage: 10
-  bulletSpread: 0.1
-  bulletSize: 10
+  bulletSpread: 0
+  bulletSize: 0.5
   bulletExplosionRadius: 0
   bulletExplosionForce: 0
-  maxRicochets: 10
-  ricochetChance: 1
-  minRicochetAngle: 10
+  ricochetChance: 0.5
+  ricochetChanceFalloff: 0.1
+  minRicochetAngle: 35
   ricochetDamageMultiplier: 0.7

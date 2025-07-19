@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070d2e22da9b4650ade7c723f9911682, type: 3}
+  m_Name: ImpactSurfaceDatabase
+  m_EditorClassIdentifier: 
+  surfaceMappings:
+  - surfaceID: 0
+    surfaceName: 
+    impactEffectPrefab: {fileID: 0}
+    decalPrefab: {fileID: 0}
+    impactSound: {fileID: 0}
+    impactScaleMultiplier: 0
+  defaultSurface:
+    surfaceID: 0
+    surfaceName: 
+    impactEffectPrefab: {fileID: 0}
+    decalPrefab: {fileID: 0}
+    impactSound: {fileID: 0}
+    impactScaleMultiplier: 1
