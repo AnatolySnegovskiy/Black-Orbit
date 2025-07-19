@@ -24,9 +24,15 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
             Instance = this;
 
             if (surfaceDatabase == null)
-                Debug.LogError("[ImpactManager] SurfaceDatabase is not assigned!");
+            {
+#if UNITY_EDITOR
+                Debug.LogError("[ImpactManager] SurfaceDatabase не назначен!");
+#endif
+            }
 
-            Debug.Log($"[ImpactManager] Initialized with {surfaceDatabase?.GetAllEntries().Count} entries.");
+#if UNITY_EDITOR
+            Debug.Log($"[ImpactManager] Инициализирован, записей: {surfaceDatabase?.GetAllEntries().Count}");
+#endif
         }
 
         public void HandleImpact(Vector3 position, Vector3 normal, int surfaceID, float scale = 1f)
@@ -50,7 +56,9 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
                 var impactComponent = prefab.GetComponent<PooledImpactObject>();
                 if (impactComponent == null)
                 {
-                    Debug.LogError($"Prefab {prefab.name} must have PooledImpactObject component attached.");
+#if UNITY_EDITOR
+                    Debug.LogError($"Префаб {prefab.name} должен содержать компонент PooledImpactObject");
+#endif
                     return;
                 }
 
@@ -62,7 +70,7 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
             instance.transform.SetPositionAndRotation(position, Quaternion.LookRotation(normal));
             instance.transform.localScale = Vector3.one * scale;
             instance.Initialize(pool);
-            instance.ReturnToPool(); // Will return itself after 5 sec by default
+            instance.ReturnToPool(); // Вернётся в пул через 5 секунд по умолчанию
         }
         
         public void Shutdown()

@@ -24,7 +24,9 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
         {
             if (weaponData == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("WeaponData не назначен");
+#endif
                 return;
             }
 
@@ -35,7 +37,9 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             var muzzle = weaponGo.GetComponentInChildren<Muzzle>();
             if (muzzle == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("Weapon prefab должен содержать дочерний объект с компонентом Muzzle");
+#endif
                 return;
             }
 
