@@ -11,12 +11,13 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
     {
         public const string DefaultProperty = "_SurfaceIdMap";
         [Tooltip("Карта оттенков серого, где яркость соответствует ID поверхности")]
-        public Texture2D surfaceIdMap;
+        [SerializeField] private Texture2D surfaceIdMap;
 
         [Tooltip("Имя текстурного свойства в материале")]
-        public string materialProperty = DefaultProperty;
+        [SerializeField] private string materialProperty = DefaultProperty;
 
         [Tooltip("ID поверхности по умолчанию, если карта отсутствует")]
+        [SerializeField] private int defaultSurfaceId = 0;
 
         /// Возвращает ID поверхности из заданной карты или материала.
         /// </summary>
