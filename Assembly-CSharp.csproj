@@ -46,7 +46,7 @@
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.1.11f1\Editor\Data\Tools\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Runtime\PooledBullet.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Runtime\BulletProjectile.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\Muzzle.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\Hand.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\ImpactSystem\ScriptableObjects\ImpactSurfaceDatabase.cs" />

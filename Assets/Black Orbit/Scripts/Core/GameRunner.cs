@@ -41,12 +41,16 @@ namespace Black_Orbit.Scripts.Core
                     {
                         system.Initialize();
                         _activeSystems.Add(system);
+#if UNITY_EDITOR
                         Debug.Log($"[GameRunner] Initialized: {instance.name}");
+#endif
                     }
                 }
                 else
                 {
+#if UNITY_EDITOR
                     Debug.LogWarning($"[GameRunner] {prefab.name} does not implement IGameSystem and will not be initialized.");
+#endif
                 }
             }
         }
@@ -64,7 +68,9 @@ namespace Black_Orbit.Scripts.Core
                 }
                 catch (System.Exception ex)
                 {
+#if UNITY_EDITOR
                     Debug.LogError($"[GameRunner] Error shutting down {system.GetType().Name}: {ex}");
+#endif
                 }
             }
 
