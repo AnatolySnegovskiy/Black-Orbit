@@ -24,9 +24,15 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
             Instance = this;
 
             if (surfaceDatabase == null)
+            {
+#if UNITY_EDITOR
                 Debug.LogError("[ImpactManager] SurfaceDatabase is not assigned!");
+#endif
+            }
 
+#if UNITY_EDITOR
             Debug.Log($"[ImpactManager] Initialized with {surfaceDatabase?.GetAllEntries().Count} entries.");
+#endif
         }
 
         public void HandleImpact(Vector3 position, Vector3 normal, int surfaceID, float scale = 1f)
@@ -50,7 +56,9 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
                 var impactComponent = prefab.GetComponent<PooledImpactObject>();
                 if (impactComponent == null)
                 {
+#if UNITY_EDITOR
                     Debug.LogError($"Prefab {prefab.name} must have PooledImpactObject component attached.");
+#endif
                     return;
                 }
 

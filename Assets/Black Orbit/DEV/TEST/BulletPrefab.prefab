@@ -150,7 +150,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 289ea07592d04d38b84575bdf59c6eba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  inpactEffect: {fileID: 5245542156791374066, guid: 2151635639b557140bb4659ab5e5b367, type: 3}
   hitMask:
     serializedVersion: 2
     m_Bits: 115
