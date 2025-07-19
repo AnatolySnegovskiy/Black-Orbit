@@ -49,7 +49,7 @@ namespace Black_Orbit.Scripts.Core
                 else
                 {
 #if UNITY_EDITOR
-                    Debug.LogWarning($"[GameRunner] {prefab.name} does not implement IGameSystem and will not be initialized.");
+                    Debug.LogWarning($"[GameRunner] {prefab.name} не реализует IGameSystem и не будет инициализирован.");
 #endif
                 }
             }

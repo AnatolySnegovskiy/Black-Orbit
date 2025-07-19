@@ -11,12 +11,12 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
 {
     [RequireComponent(typeof(Rigidbody))]
     /// <summary>
-    /// Runtime behaviour for pooled bullet projectiles.
-    /// Handles physics, collisions and impact effects.
+    /// Класс пули, используемой пулом объектов.
+    /// Отвечает за физику, столкновения и эффекты попадания.
     /// </summary>
     public class BulletProjectile : MonoBehaviour
     {
-        // Impact effects are now handled via ImpactManager
+        // Эффекты попадания теперь обрабатываются через ImpactManager
         [SerializeField] private LayerMask hitMask = ~0; // по умолчанию всё, кроме Nothing
 
         private Rigidbody _rb;
@@ -96,11 +96,10 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
 
             if (!TryRicochetOrReturn(normal, point))
             {
-                ReturnToPool();
+                // Можно вернуть пулю в пул
             }
 
-            var surface = collider.GetComponent<ImpactSurface>();
-            int surfaceId = surface != null ? surface.GetSurfaceId(texCoord) : 0;
+            int surfaceId = ImpactSurface.GetSurfaceId(collider, texCoord);
             ImpactManager.Instance?.HandleImpact(point, normal, surfaceId);
             lithit.Add(point);
         }
@@ -113,6 +112,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             HandleHit(collision.collider, contact.point, contact.normal, texCoord);
             _hasProcessedHitThisFrame = true;
         }
+
 
         private void ApplyDirectHitDamage(Collider collisionCollider)
         {
@@ -162,6 +162,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             Debug.DrawRay(hitPoint, incomingDir, Color.yellow, 2f);
             Debug.Log($"[Ricochet] Hit angle: {angle:F1}° | RicochetChance: {_data.ricochetChance} | RicochetCount: {_ricochetCount}");
 #endif
+
 
             bool isRicochetAngleValid = angle >= _data.minRicochetAngle && angle < 89f;
             float chance = _data.ricochetChance * Mathf.Pow(_data.ricochetChanceFalloff, _ricochetCount);

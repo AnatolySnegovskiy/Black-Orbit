@@ -69,7 +69,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
 #if UNITY_EDITOR
                 Debug.LogWarning($"Пул для {bulletData.name} не найден при возврате пули");
 #endif
-                Destroy(bullet.gameObject); // fallback
+                Destroy(bullet.gameObject); // если пула нет, уничтожаем пулю
             }
         }
         
