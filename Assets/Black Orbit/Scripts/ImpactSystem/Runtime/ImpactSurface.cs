@@ -6,13 +6,15 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
     /// Компонент, выдающий ID поверхности на основе оттенка серого
     /// в текстуре. Значение 0 соответствует ID 0, а 255 – ID 255.
     /// </summary>
+    [RequireComponent(typeof(Collider))]
     public class ImpactSurface : MonoBehaviour
     {
+        public const string DefaultProperty = "_SurfaceIdMap";
         [Tooltip("Карта оттенков серого, где яркость соответствует ID поверхности")]
         public Texture2D surfaceIdMap;
 
         [Tooltip("Имя текстурного свойства в материале")]
-        public string materialProperty = "_SurfaceIdMap";
+        public string materialProperty = DefaultProperty;
 
         [Tooltip("ID поверхности по умолчанию, если карта отсутствует")]
         [Range(0, 255)]
@@ -60,9 +62,9 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
 
             var rend = collider.GetComponent<Renderer>();
             if (rend != null && rend.sharedMaterial != null &&
-                rend.sharedMaterial.HasProperty("_SurfaceIdMap"))
+                rend.sharedMaterial.HasProperty(DefaultProperty))
             {
-                var tex = rend.sharedMaterial.GetTexture("_SurfaceIdMap") as Texture2D;
+                var tex = rend.sharedMaterial.GetTexture(DefaultProperty) as Texture2D;
                 if (tex != null)
                 {
                     Color c = tex.GetPixelBilinear(uv.x, uv.y);
