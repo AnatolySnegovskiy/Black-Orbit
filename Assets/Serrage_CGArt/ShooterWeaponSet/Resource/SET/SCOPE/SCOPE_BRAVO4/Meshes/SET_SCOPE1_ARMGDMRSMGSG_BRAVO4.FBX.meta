@@ -1,7 +1,14 @@
 fileFormatVersion: 2
 guid: bb3afdd34b36c514fb8ec2850f0a83a0
+AssetOrigin:
+  serializedVersion: 1
+  productId: 235010
+  packageName: FPS Scar-L - Sci-Fi weapon edition
+  packageVersion: 1.0
+  assetPath: Assets/Serrage_CGArt/ShooterWeaponSet/Resource/SET/SCOPE/SCOPE_BRAVO4/Meshes/SET_SCOPE1_ARMGDMRSMGSG_BRAVO4.FBX
+  uploadId: 538662
 ModelImporter:
-  serializedVersion: 20200
+  serializedVersion: 22200
   internalIDToNameTable: []
   externalObjects:
   - first:
@@ -29,9 +36,8 @@ ModelImporter:
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -46,7 +52,7 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 0
+    isReadable: 1
   meshes:
     lODScreenPercentages:
     - 0.25
@@ -56,10 +62,12 @@ ModelImporter:
     addColliders: 0
     useSRGBMaterialColor: 1
     sortHierarchyByName: 1
+    importPhysicalCameras: 1
     importVisibility: 0
     importBlendShapes: 0
     importCameras: 0
     importLights: 0
+    nodeNameCollisionStrategy: 0
     fileIdsGeneration: 2
     swapUVChannels: 0
     generateSecondaryUV: 0
@@ -71,6 +79,7 @@ ModelImporter:
     skinWeightsMode: 0
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
+    optimizeBones: 1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
@@ -81,6 +90,7 @@ ModelImporter:
     secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 0
+    strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
@@ -113,14 +123,9 @@ ModelImporter:
   humanoidOversampling: 1
   avatarSetup: 0
   addHumanoidExtraRootOnlyWhenUsingAvatar: 0
+  importBlendShapeDeformPercent: 0
+  remapMaterialsIfMaterialImportModeIsNone: 1
   additionalBone: 0
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 235010
-  packageName: FPS Scar-L - Sci-Fi weapon edition
-  packageVersion: 1.0
-  assetPath: Assets/Serrage_CGArt/ShooterWeaponSet/Resource/SET/SCOPE/SCOPE_BRAVO4/Meshes/SET_SCOPE1_ARMGDMRSMGSG_BRAVO4.FBX
-  uploadId: 538662

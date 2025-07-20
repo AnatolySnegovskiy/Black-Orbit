@@ -28,7 +28,7 @@ namespace Black_Orbit.Scripts.ImpactSystem.Editor
 
         private static void AddToExistingColliders()
         {
-            foreach (var collider in Object.FindObjectsOfType<Collider>(true))
+            foreach (var collider in Object.FindObjectsByType<Collider>(FindObjectsSortMode.None))
             {
                 AddImpactSurface(collider.gameObject);
             }

@@ -29,6 +29,6 @@ MonoBehaviour:
     surfaceID: 0
     surfaceName: 
     impactEffectPrefab: {fileID: 0}
-    decalPrefab: {fileID: 0}
+    decalPrefab: {fileID: 5245542156791374066, guid: 2151635639b557140bb4659ab5e5b367, type: 3}
     impactSound: {fileID: 0}
     impactScaleMultiplier: 1
