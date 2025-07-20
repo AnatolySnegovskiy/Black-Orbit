@@ -49,8 +49,8 @@
     <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\Muzzle.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Base\Hand.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\ImpactSystem\ScriptableObjects\ImpactSurfaceDatabase.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\Core\helper\UVHitDetectorGPU.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\ImpactSystem\Runtime\ImpactSurface.cs" />
-    <Compile Include="Assets\Black Orbit\Scripts\Core\helper\UVHitDetector.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\Core\Pooling\ObjectPool.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\Core\Base\IGameSystem.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\ImpactSystem\Data\SurfaceType.cs" />
@@ -87,6 +87,7 @@
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Surface.cginc" />
     <None Include="Assets\TextMesh Pro\Resources\LineBreaking Following Characters.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Masking.shader" />
+    <None Include="Assets\Black Orbit\Scripts\Core\Resources\UVHitFinder.compute" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF Overlay.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap-Mobile.shader" />
     <None Include="Assets\TextMesh Pro\Fonts\LiberationSans - OFL.txt" />

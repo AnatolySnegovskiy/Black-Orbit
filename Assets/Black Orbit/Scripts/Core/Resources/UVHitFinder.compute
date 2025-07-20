@@ -1,0 +1,79 @@
+﻿#pragma kernel FindUV
+
+ByteAddressBuffer   _VBuffer;       // RAW vertex data (ByteAddressBuffer — см. docs) :contentReference[oaicite:10]{index=10}
+StructuredBuffer<uint> _Indices;
+
+int _Stride;        // байт на вершину
+int _PosOffset;     // смещение позиции
+int _UVOffset;      // смещение UV
+int _TriangleCount;
+
+float3 _RayOrigin;
+float3 _RayDirection;
+
+RWStructuredBuffer<uint>   _BestDist;   // asuint(min distance)
+RWStructuredBuffer<float2> _BestUV;
+
+float3 LoadPos(uint idx)
+{
+    uint base = idx * _Stride + _PosOffset;
+    return float3(
+        asfloat(_VBuffer.Load(base + 0)),
+        asfloat(_VBuffer.Load(base + 4)),
+        asfloat(_VBuffer.Load(base + 8)));
+}
+
+float2 LoadUV(uint idx)
+{
+    uint base = idx * _Stride + _UVOffset;
+    return float2(
+        asfloat(_VBuffer.Load(base + 0)),
+        asfloat(_VBuffer.Load(base + 4)));
+}
+
+// ----------- пересечение луч‑треугольник (как раньше) -----------------------
+bool RayTri(float3 ro, float3 rd,
+            float3 v0, float3 v1, float3 v2,
+            out float t, out float3 bar)
+{
+    float3 e1 = v1 - v0, e2 = v2 - v0;
+    float3 p  = cross(rd, e2);
+    float  det = dot(e1, p);
+    if (abs(det) < 1e-6) return (bar=float3(0,0,0), t=0, false);
+    float inv = rcp(det);
+    float3 s = ro - v0;
+    float  u = dot(s, p) * inv;  if (u < 0 || u > 1) return false;
+    float3 q = cross(s, e1);
+    float  v = dot(rd, q) * inv; if (v < 0 || u+v > 1) return false;
+    t = dot(e2, q) * inv;        if (t <= 1e-5)        return false;
+    bar = float3(1-u-v, u, v);   return true;
+}
+
+[numthreads(64,1,1)]
+void FindUV(uint3 id : SV_DispatchThreadID)
+{
+    uint tri = id.x;
+    if (tri >= _TriangleCount) return;
+
+    uint i0 = _Indices[tri*3+0];
+    uint i1 = _Indices[tri*3+1];
+    uint i2 = _Indices[tri*3+2];
+
+    float3 v0 = LoadPos(i0);
+    float3 v1 = LoadPos(i1);
+    float3 v2 = LoadPos(i2);
+
+    float  dist;
+    float3 bar;
+    if (!RayTri(_RayOrigin,_RayDirection,v0,v1,v2,dist,bar)) return;
+
+    uint distBits = asuint(dist), prevBits;
+    InterlockedMin(_BestDist[0], distBits, prevBits);          // атомарный минимум :contentReference[oaicite:11]{index=11}
+    if (distBits < prevBits)                                   // наш поток обновил минимум
+    {
+        float2 uvHit =   bar.x * LoadUV(i0)
+                       + bar.y * LoadUV(i1)
+                       + bar.z * LoadUV(i2);
+        _BestUV[0] = uvHit;
+    }
+}

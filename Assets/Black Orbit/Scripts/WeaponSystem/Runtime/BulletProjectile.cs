@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Black_Orbit.Scripts.Core.helper;
+using Black_Orbit.Scripts.Core.Helper;
 using Black_Orbit.Scripts.WeaponSystem.Base;
 using Black_Orbit.Scripts.WeaponSystem.ScriptableObjects;
 using Black_Orbit.Scripts.ImpactSystem.Runtime;
@@ -48,7 +48,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             {
                 if (!_hasProcessedHitThisFrame)
                 {
-                    HandleHit(hit.collider, hit.point, hit.normal, UVHitDetector.GetHitUV(hit));
+                    HandleHit(hit.collider, hit.point, hit.normal, UVHitDetectorGPU.GetHitUV(hit));
                     _hasProcessedHitThisFrame = true;
                 }
             }
@@ -209,7 +209,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
         private Vector2 GetTextureCoord(Collider hitCollider, Vector3 point, Vector3 normal)
         {
             if (hitCollider.Raycast(new Ray(point + normal * 0.01f, -normal), out RaycastHit hit, 0.02f))
-                return UVHitDetector.GetHitUV(hit);
+                return UVHitDetectorGPU.GetHitUV(hit);
             return Vector2.zero;
         }
 
