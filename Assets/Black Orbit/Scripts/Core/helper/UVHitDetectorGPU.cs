@@ -69,7 +69,7 @@ namespace Black_Orbit.Scripts.Core.Helper
             { Cache[mesh] = c = new MeshCache(mesh); }                           // :contentReference[oaicite:8]{index=8}
 
             // --- буферы результата ------------------------------------------
-            _bestDist ??= new ComputeBuffer(1, sizeof(uint),  ComputeBufferType.Raw);
+            _bestDist ??= new ComputeBuffer(1, sizeof(uint),  ComputeBufferType.Structured);
             _bestUV   ??= new ComputeBuffer(1, sizeof(float)*2);
             _bestDist.SetData(DistInit);
             _bestUV  .SetData(UvInit);
