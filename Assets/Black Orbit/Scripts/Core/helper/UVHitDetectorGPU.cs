@@ -75,7 +75,7 @@ namespace Black_Orbit.Scripts.Core.Helper
             _bestUV  .SetData(UvInit);
 
             // --- параметры луча в локальных координатах ---------------------
-            float3 ro = tr.InverseTransformPoint(hit.point);
+            float3 ro = tr.InverseTransformPoint(hit.point + hit.normal * 0.01f);
             float3 rd = tr.InverseTransformDirection(-hit.normal).normalized;
 
             // --- заполняем шейдер -------------------------------------------
