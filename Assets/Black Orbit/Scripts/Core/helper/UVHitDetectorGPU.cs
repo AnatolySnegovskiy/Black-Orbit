@@ -1,105 +1,136 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace Black_Orbit.Scripts.Core.Helper
 {
-    /// <summary> GPU‑поиск UV‑координаты попадания. </summary>
+    /// <summary> GPU-based UV coordinate detection for raycast hits. </summary>
     public static class UVHitDetectorGPU
     {
         private const string KERNEL = "FindUV";
-        private static readonly ComputeShader Shader =
-            Resources.Load<ComputeShader>("UVHitFinder");
+        private static readonly ComputeShader Shader = Resources.Load<ComputeShader>("UVHitFinder");
+        private static readonly int KernelId = Shader.FindKernel(KERNEL);
 
-        private static readonly int Kid = Shader.FindKernel(KERNEL);
-
-        // ---------- кеш -----------------------------------------------------
+        // Mesh data cache
         private sealed class MeshCache : IDisposable
         {
-            public readonly GraphicsBuffer VBuf;   // RAW vertex buffer
-            public readonly GraphicsBuffer IBuf;   // index buffer
-            public readonly int Stride, PosOff, UvOff, TriCount;
+            public readonly GraphicsBuffer VertexBuffer; // RAW vertex buffer
+            public readonly GraphicsBuffer IndexBuffer;  // RAW index buffer
+            public readonly int Stride, PosOffset, UvOffset, TriangleCount;
+            public readonly bool UvIsHalf;               // TexCoord0 = Float16?
+            public readonly bool Is16BitIndex;           // 16-bit indices?
 
-            public MeshCache(Mesh m)
+            public MeshCache(Mesh mesh)
             {
-                // гарантируем RAW‑доступ
-                m.vertexBufferTarget |= GraphicsBuffer.Target.Raw;
+                mesh.vertexBufferTarget |= GraphicsBuffer.Target.Raw;
+                mesh.indexBufferTarget  |= GraphicsBuffer.Target.Raw;
 
-                // позиция и UV могут быть в разных стримах → берём их смещения
-                PosOff = m.GetVertexAttributeOffset(VertexAttribute.Position);   // :contentReference[oaicite:5]{index=5}
-                UvOff  = m.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
-                int stream = m.GetVertexAttributeStream(VertexAttribute.Position);
-                Stride = m.GetVertexBufferStride(stream);                        // :contentReference[oaicite:6]{index=6}
-
-                VBuf     = m.GetVertexBuffer(stream);                            // :contentReference[oaicite:7]{index=7}
-                IBuf     = m.GetIndexBuffer();
-                TriCount = IBuf.count / 3;
+                PosOffset = mesh.GetVertexAttributeOffset(VertexAttribute.Position);
+                UvOffset  = mesh.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
+                int stream = mesh.GetVertexAttributeStream(VertexAttribute.Position);
+                Stride     = mesh.GetVertexBufferStride(stream);
+                VertexBuffer = mesh.GetVertexBuffer(stream);
+                IndexBuffer  = mesh.GetIndexBuffer();
+                TriangleCount = IndexBuffer.count / 3;          // ✅ без Read/Write
+                UvIsHalf      = mesh.GetVertexAttributeFormat(VertexAttribute.TexCoord0)
+                                == VertexAttributeFormat.Float16;
+                Is16BitIndex  = mesh.indexFormat == IndexFormat.UInt16;
             }
+
             public void Dispose()
-            { VBuf?.Dispose(); IBuf?.Dispose(); }
+            {
+                VertexBuffer?.Dispose();
+                IndexBuffer?.Dispose();
+            }
         }
 
         private static readonly Dictionary<Mesh, MeshCache> Cache = new();
 
-        // ---------- одноразовые буферы результата --------------------------
-        private static ComputeBuffer _bestDist;   // uint   (asuint(float))
-        private static ComputeBuffer _bestUV;     // float2
-        private static readonly uint[]   DistInit = { 0x7F7FFFFF };  // float.MaxValue
-        private static readonly Vector2[] UvInit  = { Vector2.zero };
+        // Result buffers
+        private static ComputeBuffer _bestDist; // uint asuint(float)
+        private static ComputeBuffer _bestUV;   // float2
+        private static readonly uint[] DistInit = { 0x7F7FFFFF }; // float.MaxValue
+        private static readonly Vector2[] UvInit = { Vector2.zero };
 
-        // ---------- публичное API ------------------------------------------
-        public static Vector2 GetHitUV(in RaycastHit hit)
+        /// <summary> Get UV coordinates at the raycast hit point using GPU. </summary>
+        public static Vector2 GetHitUV(in RaycastHit hit, in Ray ray)
         {
             if (hit.collider == null) return Vector2.zero;
 
-            // --- достаём Mesh ------------------------------------------------
             Mesh mesh;
-            Transform tr;
+            Transform transform;
             if (hit.collider.TryGetComponent(out MeshFilter mf))
-            { mesh = mf.sharedMesh; tr = mf.transform; }
-            else if (hit.collider.TryGetComponent(out SkinnedMeshRenderer sm))
-            { mesh = new Mesh();  sm.BakeMesh(mesh);  tr = sm.transform; }
-            else return Vector2.zero;
+            {
+                mesh = mf.sharedMesh;
+                transform = mf.transform;
+            }
+            else if (hit.collider.TryGetComponent(out SkinnedMeshRenderer smr))
+            {
+                mesh = new Mesh();
+                smr.BakeMesh(mesh);
+                transform = smr.transform;
+            }
+            else
+            {
+                return Vector2.zero;
+            }
 
-            if (mesh == null || mesh.vertexCount == 0) return Vector2.zero;
+            if (mesh == null || mesh.vertexCount == 0)
+            {
+                return Vector2.zero;
+            }
 
-            if (!Cache.TryGetValue(mesh, out var c) || c.VBuf == null)
-            { Cache[mesh] = c = new MeshCache(mesh); }                           // :contentReference[oaicite:8]{index=8}
+            if (!Cache.TryGetValue(mesh, out var cache) || cache.VertexBuffer == null)
+            {
+                Cache[mesh] = cache = new MeshCache(mesh);
+            }
+              
 
-            // --- буферы результата ------------------------------------------
-            _bestDist ??= new ComputeBuffer(1, sizeof(uint),  ComputeBufferType.Structured);
-            _bestUV   ??= new ComputeBuffer(1, sizeof(float)*2);
+            if (cache.VertexBuffer == null || cache.IndexBuffer == null)
+            {
+                Debug.LogError("Mesh buffers are not initialized!");
+                return Vector2.zero;
+            }
+
+            if (cache.UvOffset < 0)
+            {
+                Debug.LogWarning("Mesh does not contain UV coordinates!");
+                return Vector2.zero;
+            }
+
+            _bestDist ??= new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
+            _bestUV ??= new ComputeBuffer(1, sizeof(float) * 2);
             _bestDist.SetData(DistInit);
-            _bestUV  .SetData(UvInit);
+            _bestUV.SetData(UvInit);
 
-            // --- параметры луча в локальных координатах ---------------------
-            float3 ro = tr.InverseTransformPoint(hit.point + hit.normal * 0.01f);
-            float3 rd = tr.InverseTransformDirection(-hit.normal).normalized;
+            // Transform ray into local space
+            float3 rayOrigin = transform.InverseTransformPoint(ray.origin);
+            float3 rayDir = transform.InverseTransformVector(ray.direction);
+            rayDir = math.normalize(rayDir);                                 // вернём единичную длину
 
-            // --- заполняем шейдер -------------------------------------------
-            Shader.SetBuffer(Kid, "_VBuffer",   c.VBuf);
-            Shader.SetBuffer(Kid, "_Indices",   c.IBuf);
-            Shader.SetInt   ("_Stride",         c.Stride);
-            Shader.SetInt   ("_PosOffset",      c.PosOff);
-            Shader.SetInt   ("_UVOffset",       c.UvOff);
-            Shader.SetInt   ("_TriangleCount",  c.TriCount);
-            Shader.SetVector("_RayOrigin",      (Vector3)ro);
-            Shader.SetVector("_RayDirection",   (Vector3)rd);
-            Shader.SetBuffer(Kid, "_BestDist",  _bestDist);
-            Shader.SetBuffer(Kid, "_BestUV",    _bestUV);
+            Shader.SetBuffer(KernelId, "_VBuffer", cache.VertexBuffer);
+            Shader.SetBuffer(KernelId, "_Indices", cache.IndexBuffer);
+            Shader.SetInt("_Stride", cache.Stride);
+            Shader.SetInt("_PosOffset", cache.PosOffset);
+            Shader.SetInt("_UVOffset", cache.UvOffset);
+            Shader.SetInt("_TriangleCount", cache.TriangleCount);
+            Shader.SetInt("_UVIsHalf", cache.UvIsHalf ? 1 : 0);
+            Shader.SetInt("_Is16BitIndex", cache.Is16BitIndex ? 1 : 0);
+            Shader.SetVector("_RayOrigin", new Vector4(rayOrigin.x, rayOrigin.y, rayOrigin.z, 0));
+            Shader.SetVector("_RayDirection", new Vector4(rayDir.x, rayDir.y, rayDir.z, 0));
+            Shader.SetBuffer(KernelId, "_BestDist", _bestDist);
+            Shader.SetBuffer(KernelId, "_BestUV", _bestUV);
 
-            Shader.Dispatch(Kid, Mathf.CeilToInt(c.TriCount / 64f), 1, 1);
+            Shader.Dispatch(KernelId, (cache.TriangleCount + 63) / 64, 1, 1);
 
-            // --- читаем результат -------------------------------------------
-            uint[] distBits = new uint[1];
-            _bestDist.GetData(distBits);
-            if (distBits[0] == 0x7F7FFFFF) return Vector2.zero;
+            // --- СИНХРОННО считаем 1 элемент ---
+            Vector2[] uvOut = { Vector2.zero };
+            _bestUV.GetData(uvOut);   // микроскопический stall, терпимо
 
-            Vector2[] uv = new Vector2[1];
-            _bestUV.GetData(uv);
-            return uv[0];
+            return uvOut[0];
         }
     }
 }

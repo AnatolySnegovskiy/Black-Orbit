@@ -43,12 +43,11 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
 
             Vector3 dir = _rb.linearVelocity.normalized;
             float dist = _rb.linearVelocity.magnitude * Time.fixedDeltaTime + _skinWidth;
-
             if (Physics.SphereCast(transform.position, _radius, dir, out RaycastHit hit, dist, hitMask, QueryTriggerInteraction.Ignore))
             {
                 if (!_hasProcessedHitThisFrame)
                 {
-                    HandleHit(hit.collider, hit.point, hit.normal, UVHitDetectorGPU.GetHitUV(hit));
+                    HandleHit(hit.collider, hit.point, hit.normal, UVHitDetectorGPU.GetHitUV(hit, new Ray(transform.position, dir)));
                     _hasProcessedHitThisFrame = true;
                 }
             }
@@ -208,8 +207,9 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
 
         private Vector2 GetTextureCoord(Collider hitCollider, Vector3 point, Vector3 normal)
         {
-            if (hitCollider.Raycast(new Ray(point + normal * 0.01f, -normal), out RaycastHit hit, 0.02f))
-                return UVHitDetectorGPU.GetHitUV(hit);
+            var ray = new Ray(point + normal * 0.01f, -normal);
+            if (hitCollider.Raycast(ray, out RaycastHit hit, 0.02f))
+                return UVHitDetectorGPU.GetHitUV(hit,ray);
             return Vector2.zero;
         }
 

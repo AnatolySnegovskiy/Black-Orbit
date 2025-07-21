@@ -49,6 +49,7 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
         /// </summary>
         public static int GetSurfaceId(Collider collider, Vector2 uv)
         {
+            Debug.Log(uv);
             if (collider == null) return 0;
 
             var surface = collider.GetComponent<ImpactSurface>();

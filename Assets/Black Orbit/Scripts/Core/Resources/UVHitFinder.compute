@@ -1,79 +1,165 @@
-﻿#pragma kernel FindUV
+﻿// -----------------------------------------------------------------------------
+// Compute‑шейдер: ищет пересечение луча с треугольником и возвращает UV‑координаты
+// ─  Для каждого треугольника (по одному на поток) вычисляем пересечение,
+//    находим ближайший hit и атомарно обновляем общий результат.
+// -----------------------------------------------------------------------------
 
-ByteAddressBuffer   _VBuffer;       // RAW vertex data (ByteAddressBuffer — см. docs) :contentReference[oaicite:10]{index=10}
-StructuredBuffer<uint> _Indices;
+#pragma kernel FindUV                   // ядро, вызываемое из C#
 
-int _Stride;        // байт на вершину
-int _PosOffset;     // смещение позиции
-int _UVOffset;      // смещение UV
-int _TriangleCount;
+// ──────────────────────────
+// Входные данные (ByteAddressBuffer — «сырые» байты, читаем .Load(...))
+ByteAddressBuffer _VBuffer; // Вершинный буфер: все вершины «вперемешку»
+ByteAddressBuffer _Indices; // Индексный буфер: 3 индекса на треугольник
 
+// ──────────────────────────
+// Параметры раскладки вершин (задаёт C#‑скрипт)
+int _Stride; // Размер одной вершины в байтах
+int _PosOffset; // Смещение позиции внутри вершины (byte)
+int _UVOffset; // Смещение текстурных координат внутри вершины (byte)
+int _TriangleCount; // Всего треугольников
+
+int _UVIsHalf; // 1 → UV хранятся как float16 (half), 0 → float32
+int _Is16BitIndex; // 1 → 16‑битные индексы, 0 → 32‑битные
+
+// ──────────────────────────
+// Параметры луча (могут задаваться мышкой / камерой и т.п.)
 float3 _RayOrigin;
 float3 _RayDirection;
 
-RWStructuredBuffer<uint>   _BestDist;   // asuint(min distance)
+// ──────────────────────────
+// Выходные буферы (размер 1 элемент):
+//   _BestDist[0] — расстояние до ближайшего пересечения (в виде uint битов)
+//   _BestUV [0]  — UV‑координаты этого пересечения
+RWStructuredBuffer<uint> _BestDist; // asuint(min distance)
 RWStructuredBuffer<float2> _BestUV;
 
-float3 LoadPos(uint idx)
+//=============================================================================
+//                           ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+//=============================================================================
+
+/* Загружаем индекс вершины (i0/i1/i2)
+ *  - tri   : номер треугольника
+ *  - vert  : 0, 1 или 2 (индекс внутри треугольника)                       */
+uint LoadIndex(uint tri, uint vert)
 {
-    uint base = idx * _Stride + _PosOffset;
-    return float3(
-        asfloat(_VBuffer.Load(base + 0)),
-        asfloat(_VBuffer.Load(base + 4)),
-        asfloat(_VBuffer.Load(base + 8)));
+    uint idx = tri * 3 + vert; // порядковый индекс (0..N)
+    if (_Is16BitIndex != 0)
+    {
+        uint byteOffset = idx * 2; // 2 байта на индекс
+        uint dword = _Indices.Load(byteOffset & ~3u); // выровняли адрес на 4
+        // если адрес чётный (0,4,8) → берём младшие 16 бит,
+        // если нечётный (2,6,10)  → старшие
+        return ((byteOffset & 2u) == 0u) ? (dword & 0xFFFFu) : (dword >> 16);
+    }
+
+    return _Indices.Load(idx * 4); // 32‑битные индексы — всё просто
 }
 
+/* Читаем позицию float3 из _VBuffer */
+float3 LoadPos(uint idx)
+{
+    uint base = idx * _Stride + _PosOffset; // byte‑адрес позиции в буфере
+    return float3(
+        asfloat(_VBuffer.Load(base + 0)), // x
+        asfloat(_VBuffer.Load(base + 4)), // y
+        asfloat(_VBuffer.Load(base + 8))); // z
+}
+
+/* Читаем UV из _VBuffer: поддержка float32 и упакованного float16 */
 float2 LoadUV(uint idx)
 {
     uint base = idx * _Stride + _UVOffset;
+
+    // ─ Float16 (две половинки в одном uint)
+    if (_UVIsHalf != 0)
+    {
+        uint packed = _VBuffer.Load(base); // 32 бита = Uhalf | Vhalf
+        uint2 h = uint2(packed & 0xFFFFu, packed >> 16);
+        return float2(f16tof32(h.x), f16tof32(h.y));
+    }
+
+    // ─ Float32 (по 4 байта на компоненту)
     return float2(
         asfloat(_VBuffer.Load(base + 0)),
         asfloat(_VBuffer.Load(base + 4)));
 }
 
-// ----------- пересечение луч‑треугольник (как раньше) -----------------------
+/* Классический Möller–Trumbore: пересечение луч‑треугольник
+ *   – возвращает true, если hit есть
+ *   – t     — расстояние вдоль луча
+ *   – bary  — барицентрические координаты (b0, b1, b2)                   */
 bool RayTri(float3 ro, float3 rd,
             float3 v0, float3 v1, float3 v2,
-            out float t, out float3 bar)
+            out float t, out float3 bary)
 {
-    float3 e1 = v1 - v0, e2 = v2 - v0;
-    float3 p  = cross(rd, e2);
-    float  det = dot(e1, p);
-    if (abs(det) < 1e-6) return (bar=float3(0,0,0), t=0, false);
-    float inv = rcp(det);
+    float3 e1 = v1 - v0, e2 = v2 - v0; // ребра треугольника
+    float3 p = cross(rd, e2);
+    float det = dot(e1, p);
+
+    // Луч параллелен плоскости — выходим
+    if (abs(det) < 1e-6)
+    {
+        t = 0;
+        bary = float3(0, 0, 0);
+        return false;
+    }
+
+    float invDet = rcp(det);
     float3 s = ro - v0;
-    float  u = dot(s, p) * inv;  if (u < 0 || u > 1) return false;
+    float u = dot(s, p) * invDet; // барицентрическая u
+    if (u < 0 || u > 1) return false;
+
     float3 q = cross(s, e1);
-    float  v = dot(rd, q) * inv; if (v < 0 || u+v > 1) return false;
-    t = dot(e2, q) * inv;        if (t <= 1e-5)        return false;
-    bar = float3(1-u-v, u, v);   return true;
+    float v = dot(rd, q) * invDet; // барицентрическая v
+    if (v < 0 || u + v > 1) return false;
+
+    t = dot(e2, q) * invDet; // расстояние до пересечения
+    bary = float3(1 - u - v, u, v); // (b0,b1,b2) = (w,u,v)
+    return true;
 }
 
-[numthreads(64,1,1)]
+//=============================================================================
+//                                ГЛАВНОЕ ЯДРО
+//=============================================================================
+[numthreads(64,1,1)] // 64 треугольника обрабатываем параллельно
 void FindUV(uint3 id : SV_DispatchThreadID)
 {
-    uint tri = id.x;
+    uint tri = id.x; // номер обрабатываемого треугольника
     if (tri >= _TriangleCount) return;
 
-    uint i0 = _Indices[tri*3+0];
-    uint i1 = _Indices[tri*3+1];
-    uint i2 = _Indices[tri*3+2];
+    // ──────────────────────────────────────────────────────────────────────
+    // 1) Читаем три индекса и сами вершины
+    uint i0 = LoadIndex(tri, 0);
+    uint i1 = LoadIndex(tri, 1);
+    uint i2 = LoadIndex(tri, 2);
 
     float3 v0 = LoadPos(i0);
     float3 v1 = LoadPos(i1);
     float3 v2 = LoadPos(i2);
 
-    float  dist;
-    float3 bar;
-    if (!RayTri(_RayOrigin,_RayDirection,v0,v1,v2,dist,bar)) return;
-
-    uint distBits = asuint(dist), prevBits;
-    InterlockedMin(_BestDist[0], distBits, prevBits);          // атомарный минимум :contentReference[oaicite:11]{index=11}
-    if (distBits < prevBits)                                   // наш поток обновил минимум
+    // ──────────────────────────────────────────────────────────────────────
+    // 2) Тест пересечения луча с треугольником
+    float t;
+    float3 bary;
+    if (!RayTri(_RayOrigin, _RayDirection, v0, v1, v2, t, bary))
     {
-        float2 uvHit =   bar.x * LoadUV(i0)
-                       + bar.y * LoadUV(i1)
-                       + bar.z * LoadUV(i2);
-        _BestUV[0] = uvHit;
+        return; // промах — заканчиваем поток
+    }
+    // ──────────────────────────────────────────────────────────────────────
+    // 3) Атомарно обновляем минимальную дистанцию (InterlockedMin)
+    uint distBits = asuint(t); // приводим float → uint для атомика
+    uint prevBits; // сюда запишется предыдущее значение
+    InterlockedMin(_BestDist[0], distBits, prevBits);
+
+    // Если НОВОЕ расстояние оказалось меньше старого  это самый близкий hit
+    if (distBits < prevBits)
+    {
+        // 4) Интерполяция UV по барицентрическим координатам
+        float2 uv =
+            bary.x * LoadUV(i0) +
+            bary.y * LoadUV(i1) +
+            bary.z * LoadUV(i2);
+
+        _BestUV[0] = uv; // записываем лучший UV
     }
 }
