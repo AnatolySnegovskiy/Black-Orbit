@@ -17,7 +17,7 @@ int _Stride; // Размер одной вершины в байтах
 int _PosOffset; // Смещение позиции внутри вершины (byte)
 int _UVOffset; // Смещение текстурных координат внутри вершины (byte)
 int _TriangleCount; // Всего треугольников
-
+float _MaxDistance; // Максимальное расстояние до треугольника
 int _UVIsHalf; // 1 → UV хранятся как float16 (half), 0 → float32
 int _Is16BitIndex; // 1 → 16‑битные индексы, 0 → 32‑битные
 
@@ -112,7 +112,9 @@ bool RayTri(float3 ro, float3 rd,
     float3 q = cross(s, e1);
     float v = dot(rd, q) * invDet; // барицентрическая v
     if (v < 0 || u + v > 1) return false;
-
+    
+    if (t < 0 || t > _MaxDistance) return false;
+    
     t = dot(e2, q) * invDet; // расстояние до пересечения
     bary = float3(1 - u - v, u, v); // (b0,b1,b2) = (w,u,v)
     return true;

@@ -110,10 +110,11 @@ namespace Black_Orbit.Scripts.Core.Helper
             float3 rayOrigin = transform.InverseTransformPoint(ray.origin);
             float3 rayDir = transform.InverseTransformVector(ray.direction);
             rayDir = math.normalize(rayDir);                                 // вернём единичную длину
-
+            
             Shader.SetBuffer(KernelId, "_VBuffer", cache.VertexBuffer);
             Shader.SetBuffer(KernelId, "_Indices", cache.IndexBuffer);
             Shader.SetInt("_Stride", cache.Stride);
+            Shader.SetFloat("_MaxDistance", 0.2f);
             Shader.SetInt("_PosOffset", cache.PosOffset);
             Shader.SetInt("_UVOffset", cache.UvOffset);
             Shader.SetInt("_TriangleCount", cache.TriangleCount);
