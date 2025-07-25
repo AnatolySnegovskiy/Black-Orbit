@@ -142,7 +142,7 @@ bool RayTri(float3 ro, float3 rd,
 void FindUV(uint3 id : SV_DispatchThreadID)
 {
     uint tri = id.x; // номер обрабатываемого треугольника
-    if (tri >= _TriangleCount) return;
+    if (tri >= (uint)_TriangleCount) return;
 
     // ──────────────────────────────────────────────────────────────────────
     // 1) Читаем три индекса и сами вершины
