@@ -120,7 +120,7 @@ namespace Black_Orbit.Scripts.Core.Helper
             
             float hitDistance = Vector3.Dot(hit.point - ray.origin, ray.direction);
             
-            Shader.SetFloat("_MaxDistance", hitDistance + 0.01f);
+            Shader.SetFloat("_MaxDistance", hitDistance);
             Shader.SetInt("_PosOffset", cache.PosOffset);
             Shader.SetInt("_PosHalf", cache.posHalf ? 1 : 0);
             Shader.SetInt("_UVOffset", cache.UvOffset);

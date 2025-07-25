@@ -47,7 +47,10 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             {
                 if (!_hasProcessedHitThisFrame)
                 {
-                    HandleHit(hit.collider, hit.point, hit.normal, UVHitDetectorGPU.GetHitUV(hit, new Ray(transform.position, dir)));
+                    var origin = hit.point + hit.normal * 0.01f;   // на 1 см вне поверхности
+                    var inwardRay = new Ray(origin, -hit.normal);  // направлен внутрь объекта
+                    Vector2 uv = UVHitDetectorGPU.GetHitUV(hit, inwardRay);
+                    HandleHit(hit.collider, hit.point, hit.normal, uv);
                     _hasProcessedHitThisFrame = true;
                 }
             }
