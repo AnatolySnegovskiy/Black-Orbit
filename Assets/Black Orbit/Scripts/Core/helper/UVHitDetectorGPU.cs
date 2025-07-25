@@ -72,84 +72,115 @@ namespace Black_Orbit.Scripts.Core.Helper
         /// <summary> Get UV coordinates at the raycast hit point using GPU. </summary>
         public static Vector2 GetHitUV(in RaycastHit hit, in Ray ray)
         {
-            if (hit.collider == null) return Vector2.zero;
+            if (hit.collider == null)
+                return Vector2.zero;
 
-            Mesh mesh;
-            Transform transform;
-            if (hit.collider.TryGetComponent(out MeshFilter mf))
+            if (!TryExtractMesh(hit.collider, out var mesh, out var transform))
+                return Vector2.zero;
+
+            if (mesh == null || mesh.vertexCount == 0)
+                return Vector2.zero;
+
+            if (!Cache.TryGetValue(mesh, out MeshCache cache) || cache.VertexBuffer == null)
+                Cache[mesh] = cache = new MeshCache(mesh);
+
+            if (!ValidateMeshCache(cache))
+                return Vector2.zero;
+
+            EnsureResultBuffers();
+
+            var localRay = TransformRayToLocal(ray, transform);
+            float hitDistance = math.dot(hit.point - ray.origin, ray.direction) + 0.1f;
+
+            DispatchComputeShader(cache, localRay, hitDistance);
+
+            return ReadResultUV();
+        }
+
+        private static bool TryExtractMesh(Collider collider, out Mesh mesh, out Transform transform)
+        {
+            mesh = null;
+            transform = null;
+
+            if (collider.TryGetComponent(out MeshFilter mf))
             {
                 mesh = mf.sharedMesh;
                 transform = mf.transform;
+                return true;
             }
-            else if (hit.collider.TryGetComponent(out SkinnedMeshRenderer smr))
+
+            if (collider.TryGetComponent(out SkinnedMeshRenderer smr))
             {
                 mesh = new Mesh();
                 smr.BakeMesh(mesh);
                 transform = smr.transform;
-            }
-            else
-            {
-                return Vector2.zero;
+                return true;
             }
 
-            if (mesh is null || mesh.vertexCount == 0)
-            {
-                return Vector2.zero;
-            }
+            return false;
+        }
 
-            if (!Cache.TryGetValue(mesh, out MeshCache cache) || cache.VertexBuffer == null)
-            {
-                Cache[mesh] = cache = new MeshCache(mesh);
-            }
-
-
+        private static bool ValidateMeshCache(MeshCache cache)
+        {
             if (cache.VertexBuffer == null || cache.IndexBuffer == null)
             {
                 Debug.LogError("Mesh buffers are not initialized!");
-                return Vector2.zero;
+                return false;
             }
 
             if (cache.UvOffset < 0)
             {
                 Debug.LogWarning("Mesh does not contain UV coordinates!");
-                return Vector2.zero;
+                return false;
             }
 
+            return true;
+        }
+
+        private static void EnsureResultBuffers()
+        {
             _bestDist ??= new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
             _bestUV ??= new ComputeBuffer(1, sizeof(float) * 2);
+
             _bestDist.SetData(DistInit);
             _bestUV.SetData(UvInit);
+        }
 
-            // Важно: правильное преобразование луча в локальное пространство меша
+        private static Ray TransformRayToLocal(Ray ray, Transform transform)
+        {
             Matrix4x4 worldToLocal = transform.worldToLocalMatrix;
-            Vector3 rayOrigin = worldToLocal.MultiplyPoint(ray.origin);
-            Vector3 rayDir = worldToLocal.MultiplyVector(ray.direction).normalized;
+            Vector3 origin = worldToLocal.MultiplyPoint(ray.origin);
+            Vector3 direction = worldToLocal.MultiplyVector(ray.direction).normalized;
+            return new Ray(origin, direction);
+        }
 
+        private static void DispatchComputeShader(MeshCache cache, Ray localRay, float maxDistance)
+        {
             Shader.SetBuffer(KernelId, VBufferCompute, cache.VertexBuffer);
             Shader.SetBuffer(KernelId, IndicesCompute, cache.IndexBuffer);
             Shader.SetInt(StrideCompute, cache.Stride);
 
-            float hitDistance = math.dot(hit.point - ray.origin, ray.direction);
-
-            Shader.SetFloat(MaxDistanceCompute, hitDistance);
+            Shader.SetFloat(MaxDistanceCompute, maxDistance);
             Shader.SetInt(PosOffsetCompute, cache.PosOffset);
             Shader.SetInt(PosHalfCompute, cache.PosHalf ? 1 : 0);
             Shader.SetInt(UVOffsetCompute, cache.UvOffset);
             Shader.SetInt(TriangleCountCompute, cache.TriangleCount);
             Shader.SetInt(UVIsHalfCompute, cache.UvIsHalf ? 1 : 0);
             Shader.SetInt(Is16BitIndexCompute, cache.Is16BitIndex ? 1 : 0);
-            Shader.SetVector(RayOriginCompute, new Vector4(rayOrigin.x, rayOrigin.y, rayOrigin.z, 0));
-            Shader.SetVector(RayDirectionCompute, new Vector4(rayDir.x, rayDir.y, rayDir.z, 0));
+            Shader.SetVector(RayOriginCompute, new Vector4(localRay.origin.x, localRay.origin.y, localRay.origin.z, 0));
+            Shader.SetVector(RayDirectionCompute, new Vector4(localRay.direction.x, localRay.direction.y, localRay.direction.z, 0));
             Shader.SetBuffer(KernelId, BestDistCompute, _bestDist);
             Shader.SetBuffer(KernelId, BestUVCompute, _bestUV);
 
-            Shader.Dispatch(KernelId, (cache.TriangleCount + 63) / 64, 1, 1);
+            int threadGroups = (cache.TriangleCount + 63) / 64;
+            Shader.Dispatch(KernelId, threadGroups, 1, 1);
+        }
 
-            // --- СИНХРОННО считаем 1 элемент ---
-            Vector2[] uvOut = { Vector2.zero };
-            _bestUV.GetData(uvOut); // микроскопический stall, терпимо
-
-            return uvOut[0];
+        private static Vector2 ReadResultUV()
+        {
+            Vector2[] result = { Vector2.zero };
+            _bestUV.GetData(result);
+            return result[0];
         }
     }
 }
