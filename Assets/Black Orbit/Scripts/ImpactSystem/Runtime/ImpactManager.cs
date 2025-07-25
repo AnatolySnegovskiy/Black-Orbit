@@ -67,7 +67,7 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
             }
 
             var instance = pool.Get();
-            instance.transform.SetPositionAndRotation(position, Quaternion.LookRotation(normal));
+            instance.transform.SetPositionAndRotation(position, Quaternion.LookRotation(-normal));
             instance.transform.localScale = Vector3.one * (scale == 0f ? 1f : scale);
         }
 

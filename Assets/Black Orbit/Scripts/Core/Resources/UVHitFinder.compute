@@ -15,6 +15,7 @@ ByteAddressBuffer _Indices; // Индексный буфер: 3 индекса �
 // Параметры раскладки вершин (задаёт C#‑скрипт)
 int _Stride; // Размер одной вершины в байтах
 int _PosOffset; // Смещение позиции внутри вершины (byte)
+int _PosHalf; // 1 → позиция хранится как float16 (half), 0 → float32
 int _UVOffset; // Смещение текстурных координат внутри вершины (byte)
 int _TriangleCount; // Всего треугольников
 float _MaxDistance; // Максимальное расстояние до треугольника
@@ -58,11 +59,24 @@ uint LoadIndex(uint tri, uint vert)
 /* Читаем позицию float3 из _VBuffer */
 float3 LoadPos(uint idx)
 {
-    uint base = idx * _Stride + _PosOffset; // byte‑адрес позиции в буфере
+    uint base = idx * _Stride + _PosOffset;
+
+    if (_PosHalf == 1)          // -------- Float16 (x,y) | Float16 (z,_)
+    {
+        uint lo = _VBuffer.Load(base);     // [y15..0 | x15..0]
+        uint hi = _VBuffer.Load(base + 4); // [____ | z15..0]
+
+        float x = f16tof32(lo & 0xFFFFu);
+        float y = f16tof32(lo >> 16);
+        float z = f16tof32(hi & 0xFFFFu);
+        return float3(x, y, z);
+    }
+
+    // -------- Float32 (обычный путь)
     return float3(
-        asfloat(_VBuffer.Load(base + 0)), // x
-        asfloat(_VBuffer.Load(base + 4)), // y
-        asfloat(_VBuffer.Load(base + 8))); // z
+        asfloat(_VBuffer.Load(base + 0)),
+        asfloat(_VBuffer.Load(base + 4)),
+        asfloat(_VBuffer.Load(base + 8)));
 }
 
 /* Читаем UV из _VBuffer: поддержка float32 и упакованного float16 */
@@ -71,7 +85,7 @@ float2 LoadUV(uint idx)
     uint base = idx * _Stride + _UVOffset;
 
     // ─ Float16 (две половинки в одном uint)
-    if (_UVIsHalf != 0)
+    if (_UVIsHalf == 1)
     {
         uint packed = _VBuffer.Load(base); // 32 бита = Uhalf | Vhalf
         uint2 h = uint2(packed & 0xFFFFu, packed >> 16);
@@ -113,7 +127,8 @@ bool RayTri(float3 ro, float3 rd,
     float v = dot(rd, q) * invDet; // барицентрическая v
     if (v < 0 || u + v > 1) return false;
     
-    if (t < 0 || t > _MaxDistance) return false;
+    if (t > _MaxDistance) return false;
+
     
     t = dot(e2, q) * invDet; // расстояние до пересечения
     bary = float3(1 - u - v, u, v); // (b0,b1,b2) = (w,u,v)

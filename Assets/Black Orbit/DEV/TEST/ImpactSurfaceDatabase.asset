@@ -18,13 +18,13 @@ MonoBehaviour:
     impactEffectPrefab: {fileID: 0}
     decalPrefab: {fileID: 5245542156791374066, guid: 2151635639b557140bb4659ab5e5b367, type: 3}
     impactSound: {fileID: 0}
-    impactScaleMultiplier: 0.01
+    impactScaleMultiplier: 0.0001
   - surfaceID: 255
     surfaceName: "\u0414\u0435\u0440\u0435\u0432\u043E"
     impactEffectPrefab: {fileID: 0}
     decalPrefab: {fileID: 5245542156791374066, guid: f3623916f2f416a428116119409e683d, type: 3}
     impactSound: {fileID: 0}
-    impactScaleMultiplier: 0.01
+    impactScaleMultiplier: 0.0001
   defaultSurface:
     surfaceID: 0
     surfaceName: 

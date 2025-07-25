@@ -209,7 +209,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
         {
             var ray = new Ray(point + normal * 0.01f, -normal);
             if (hitCollider.Raycast(ray, out RaycastHit hit, 0.02f))
-                return UVHitDetectorGPU.GetHitUV(hit,ray);
+                return UVHitDetectorGPU.GetHitUV(hit, ray);
             return Vector2.zero;
         }
 

@@ -21,7 +21,8 @@ namespace Black_Orbit.Scripts.Core.Helper
             public readonly GraphicsBuffer IndexBuffer;  // RAW index buffer
             public readonly int Stride, PosOffset, UvOffset, TriangleCount;
             public readonly bool UvIsHalf;               // TexCoord0 = Float16?
-            public readonly bool Is16BitIndex;           // 16-bit indices?
+            public readonly bool Is16BitIndex;
+            public readonly bool posHalf;
 
             public MeshCache(Mesh mesh)
             {
@@ -29,6 +30,8 @@ namespace Black_Orbit.Scripts.Core.Helper
                 mesh.indexBufferTarget  |= GraphicsBuffer.Target.Raw;
 
                 PosOffset = mesh.GetVertexAttributeOffset(VertexAttribute.Position);
+                posHalf = mesh.GetVertexAttributeFormat(VertexAttribute.Position)
+                            == VertexAttributeFormat.Float16;
                 UvOffset  = mesh.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
                 int stream = mesh.GetVertexAttributeStream(VertexAttribute.Position);
                 Stride     = mesh.GetVertexBufferStride(stream);
@@ -105,17 +108,18 @@ namespace Black_Orbit.Scripts.Core.Helper
             _bestUV ??= new ComputeBuffer(1, sizeof(float) * 2);
             _bestDist.SetData(DistInit);
             _bestUV.SetData(UvInit);
-
-            // Transform ray into local space
-            float3 rayOrigin = transform.InverseTransformPoint(ray.origin);
-            float3 rayDir = transform.InverseTransformVector(ray.direction);
-            rayDir = math.normalize(rayDir);                                 // вернём единичную длину
+            
+            // Важно: правильное преобразование луча в локальное пространство меша
+            Matrix4x4 worldToLocal = transform.worldToLocalMatrix;
+            Vector3 rayOrigin = worldToLocal.MultiplyPoint(ray.origin);
+            Vector3 rayDir = worldToLocal.MultiplyVector(ray.direction).normalized;
             
             Shader.SetBuffer(KernelId, "_VBuffer", cache.VertexBuffer);
             Shader.SetBuffer(KernelId, "_Indices", cache.IndexBuffer);
             Shader.SetInt("_Stride", cache.Stride);
-            Shader.SetFloat("_MaxDistance", 0.2f);
+            Shader.SetFloat("_MaxDistance", 10f);
             Shader.SetInt("_PosOffset", cache.PosOffset);
+            Shader.SetInt("_PosHalf", cache.posHalf ? 1 : 0);
             Shader.SetInt("_UVOffset", cache.UvOffset);
             Shader.SetInt("_TriangleCount", cache.TriangleCount);
             Shader.SetInt("_UVIsHalf", cache.UvIsHalf ? 1 : 0);
@@ -130,7 +134,7 @@ namespace Black_Orbit.Scripts.Core.Helper
             // --- СИНХРОННО считаем 1 элемент ---
             Vector2[] uvOut = { Vector2.zero };
             _bestUV.GetData(uvOut);   // микроскопический stall, терпимо
-
+            
             return uvOut[0];
         }
     }
