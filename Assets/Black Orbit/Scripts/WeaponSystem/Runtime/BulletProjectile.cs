@@ -47,11 +47,14 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             {
                 if (!_hasProcessedHitThisFrame)
                 {
-                    var origin = hit.point + hit.normal * 0.01f;   // на 1 см вне поверхности
-                    var inwardRay = new Ray(origin, -hit.normal);  // направлен внутрь объекта
+                    var origin = hit.point + hit.normal * 0.01f; // на 1 см вне поверхности
+                    var inwardRay = new Ray(origin, -hit.normal); // направлен внутрь объекта
                     Vector2 uv = UVHitDetectorGPU.GetHitUV(hit, inwardRay);
                     HandleHit(hit.collider, hit.point, hit.normal, uv);
                     _hasProcessedHitThisFrame = true;
+#if UNITY_EDITOR
+                    Debug.DrawRay(origin, -hit.normal, Color.darkOrange, 2f);
+#endif
                 }
             }
         }
@@ -101,6 +104,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             _lithit.Add(point);
         }
 
+        /*
         private void OnCollisionEnter(Collision collision)
         {
             if (_hasProcessedHitThisFrame) return;
@@ -109,6 +113,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             HandleHit(collision.collider, contact.point, contact.normal, texCoord);
             _hasProcessedHitThisFrame = true;
         }
+        */
 
 
         private void ApplyDirectHitDamage(Collider collisionCollider)

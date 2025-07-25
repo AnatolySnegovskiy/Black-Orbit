@@ -90,7 +90,7 @@ namespace Black_Orbit.Scripts.Core.Helper
             EnsureResultBuffers();
 
             var localRay = TransformRayToLocal(ray, transform);
-            float hitDistance = math.dot(hit.point - ray.origin, ray.direction) + 0.1f;
+            float hitDistance = math.dot(hit.point - ray.origin, ray.direction) + 0.01f;
 
             DispatchComputeShader(cache, localRay, hitDistance);
 
