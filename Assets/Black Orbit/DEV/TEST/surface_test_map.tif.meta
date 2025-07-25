@@ -64,14 +64,14 @@ TextureImporter:
   textureFormatSet: 0
   ignorePngGamma: 0
   applyGammaDecoding: 0
-  swizzle: 50462976
+  swizzle: 134349056
   cookieLightType: 0
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
     maxTextureSize: 2048
     resizeAlgorithm: 1
-    textureFormat: -1
+    textureFormat: 20
     textureCompression: 2
     compressionQuality: 50
     crunchedCompression: 0

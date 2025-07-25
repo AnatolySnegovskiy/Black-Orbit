@@ -38,9 +38,13 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
 
             if (map == null)
                 return defaultSurfaceId;
-
-            Color c = map.GetPixelBilinear(uv.x, uv.y);
-            return Mathf.Clamp(Mathf.RoundToInt(c.grayscale * 255f), 0, 255);
+            
+            Vector2 uvClamped = new Vector2(Mathf.Clamp01(uv.x), Mathf.Clamp01(uv.y));
+            int x = Mathf.Clamp((int)(uvClamped.x * map.width), 0, map.width - 1);
+            int y = Mathf.Clamp((int)(uvClamped.y * map.height), 0, map.height - 1);
+            Color c = map.GetPixel(x, y);     // точная выборка без сглаживания
+            int id = c.grayscale >= 0.5f ? 255 : 0;  // чётко разделяет чёрное/белое
+            return id;
         }
 
         /// <summary>
