@@ -16,7 +16,7 @@ MonoBehaviour:
   weaponPrefab: {fileID: 6614979026274792250, guid: f522c54373a647145bb732bdcd16f5ef, type: 3}
   weaponIcon: {fileID: 0}
   weaponType: 0
-  fireRate: 1000
+  fireRate: 100000
   initialFireDelay: 0
   spreadAngle: 5
   bulletsPerShot: 1

@@ -70,7 +70,7 @@ namespace Black_Orbit.Scripts.Core.Helper
         static readonly int StrideCompute = UnityEngine.Shader.PropertyToID("_Stride");
 
         /// <summary> Get UV coordinates at the raycast hit point using GPU. </summary>
-        public static Vector2 GetHitUV(in RaycastHit hit, in Ray ray)
+        public static Vector2 GetHitUV(in RaycastHit hit, in Ray worldRay)
         {
             if (hit.collider == null)
                 return Vector2.zero;
@@ -89,14 +89,20 @@ namespace Black_Orbit.Scripts.Core.Helper
 
             EnsureResultBuffers();
 
-            var localRay = TransformRayToLocal(ray, transform);
-            float hitDistance = math.dot(hit.point - ray.origin, ray.direction) + 0.01f;
+            bool worldSpace = NeedsWorldSpace(transform);
+            Ray rayForGpu = worldSpace ? worldRay : TransformRayToLocal(worldRay, transform);
+            float hitDistance = math.dot(hit.point - rayForGpu.origin, rayForGpu.direction) + 0.01f;
 
-            DispatchComputeShader(cache, localRay, hitDistance);
+            DispatchComputeShader(cache, rayForGpu, hitDistance);
 
             return ReadResultUV();
         }
-
+        
+        private static bool NeedsWorldSpace(Transform t)
+        {
+            return t.TryGetComponent(out Renderer r) && r.isPartOfStaticBatch;
+        }
+        
         private static bool TryExtractMesh(Collider collider, out Mesh mesh, out Transform transform)
         {
             mesh = null;

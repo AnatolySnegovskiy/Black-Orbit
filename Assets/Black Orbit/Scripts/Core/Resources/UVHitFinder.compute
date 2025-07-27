@@ -110,8 +110,11 @@ bool RayTri(float3 ro, float3 rd,
     float3 p = cross(rd, e2);
     float det = dot(e1, p);
 
-    // Луч параллелен плоскости — выходим
-    if (abs(det) < 1e-6)
+    float maxEdge = max(length(e1), length(e2));   // грубая оценка масштаба тр-ка
+    float EPS = 1e-6 * maxEdge;// относительный порог
+    
+    // Луч параллелен плоскости или треугольник обращён тыльной стороной — выходим
+    if (det <= EPS)
     {
         t = 0;
         bary = float3(0, 0, 0);
@@ -129,7 +132,7 @@ bool RayTri(float3 ro, float3 rd,
     
     t = dot(e2, q) * invDet; // расстояние до пересечения
     
-    if (t == 0 || t > _MaxDistance) return false;
+    if (t < EPS || t > _MaxDistance) return false;
     
     bary = float3(1 - u - v, u, v); // (b0,b1,b2) = (w,u,v)
     return true;
