@@ -19,10 +19,22 @@ MonoBehaviour:
     decalPrefab: {fileID: 5245542156791374066, guid: 2151635639b557140bb4659ab5e5b367, type: 3}
     impactSound: {fileID: 0}
     impactScaleMultiplier: 0.0001
-  - surfaceID: 255
+  - surfaceID: 1
     surfaceName: "\u0414\u0435\u0440\u0435\u0432\u043E"
     impactEffectPrefab: {fileID: 0}
     decalPrefab: {fileID: 5245542156791374066, guid: f3623916f2f416a428116119409e683d, type: 3}
+    impactSound: {fileID: 0}
+    impactScaleMultiplier: 0.0001
+  - surfaceID: 2
+    surfaceName: "\u041A\u0430\u043C\u0435\u043D\u044C"
+    impactEffectPrefab: {fileID: 0}
+    decalPrefab: {fileID: 5245542156791374066, guid: 7e9faf901d11a3841a22bf80298b81e1, type: 3}
+    impactSound: {fileID: 0}
+    impactScaleMultiplier: 0.0001
+  - surfaceID: 3
+    surfaceName: "\u0412\u043E\u0434\u0430"
+    impactEffectPrefab: {fileID: 0}
+    decalPrefab: {fileID: 5245542156791374066, guid: e15c424f7ffee224b9f626d3162d0032, type: 3}
     impactSound: {fileID: 0}
     impactScaleMultiplier: 0.0001
   defaultSurface:

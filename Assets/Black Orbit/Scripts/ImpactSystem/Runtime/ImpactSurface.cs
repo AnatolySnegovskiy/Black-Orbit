@@ -1,3 +1,4 @@
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Black_Orbit.Scripts.ImpactSystem.Runtime
@@ -19,6 +20,7 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
         [Tooltip("ID поверхности по умолчанию, если карта отсутствует")]
         [SerializeField] private int defaultSurfaceId = 0;
 
+        /// <summary>
         /// Возвращает ID поверхности из заданной карты или материала.
         /// </summary>
         /// <param name="uv">Текстурные координаты точки столкновения.</param>
@@ -29,8 +31,7 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
             Texture2D map = surfaceIdMap;
             if (map == null && sourceRenderer != null)
             {
-                if (sourceRenderer.sharedMaterial != null &&
-                    sourceRenderer.sharedMaterial.HasProperty(materialProperty))
+                if (sourceRenderer.sharedMaterial != null && sourceRenderer.sharedMaterial.HasProperty(materialProperty))
                 {
                     map = sourceRenderer.sharedMaterial.GetTexture(materialProperty) as Texture2D;
                 }
@@ -38,13 +39,9 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
 
             if (map == null)
                 return defaultSurfaceId;
-            
-            Vector2 uvClamped = new Vector2(Mathf.Clamp01(uv.x), Mathf.Clamp01(uv.y));
-            int x = Mathf.Clamp((int)(uvClamped.x * map.width), 0, map.width - 1);
-            int y = Mathf.Clamp((int)(uvClamped.y * map.height), 0, map.height - 1);
-            Color c = map.GetPixel(x, y);     // точная выборка без сглаживания
-            int id = c.grayscale >= 0.5f ? 255 : 0;  // чётко разделяет чёрное/белое
-            return id;
+
+            Color c = map.GetPixelBilinear(uv.x, uv.y);
+            return math.clamp((int)math.round(c.grayscale * 255f), 0, 255);
         }
 
         /// <summary>
@@ -53,7 +50,6 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
         /// </summary>
         public static int GetSurfaceId(Collider collider, Vector2 uv)
         {
-            Debug.Log(uv);
             if (collider == null) return 0;
 
             var surface = collider.GetComponent<ImpactSurface>();
@@ -64,14 +60,13 @@ namespace Black_Orbit.Scripts.ImpactSystem.Runtime
             }
 
             var rend = collider.GetComponent<Renderer>();
-            if (rend != null && rend.sharedMaterial != null &&
-                rend.sharedMaterial.HasProperty(DefaultProperty))
+            if (rend != null && rend.sharedMaterial != null && rend.sharedMaterial.HasProperty(DefaultProperty))
             {
                 var tex = rend.sharedMaterial.GetTexture(DefaultProperty) as Texture2D;
                 if (tex != null)
                 {
                     Color c = tex.GetPixelBilinear(uv.x, uv.y);
-                    return Mathf.Clamp(Mathf.RoundToInt(c.grayscale * 255f), 0, 255);
+                    return math.clamp((int)math.round(c.grayscale * 255f), 0, 255);
                 }
             }
             return 0;

@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2042c47124c94f9e9932a0f4b084a81d, type: 3}
-  m_Name: New Weapon
+  m_Name: Weapon1
   m_EditorClassIdentifier: 
   weaponName: TEST BLASTER PIDOR
   weaponPrefab: {fileID: 6614979026274792250, guid: f522c54373a647145bb732bdcd16f5ef, type: 3}
