@@ -13,7 +13,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Base
         
        [SerializeField] private Type handType;
         
-        public Type HandType => handType;
+        public Type HandType { get => handType; set => handType = value; }
         
         private void OnDrawGizmos()
         {

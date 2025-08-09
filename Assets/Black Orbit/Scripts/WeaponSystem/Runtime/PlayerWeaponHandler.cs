@@ -13,7 +13,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
         [SerializeField] private Transform leftHand;
         private IWeapon _weapon;
         private InputActionMap _currentMap;
-
+        private WeaponHandler _weaponHandler;
         private void Awake()
         {
             _currentMap = GetComponent<PlayerInput>().currentActionMap;
@@ -31,10 +31,10 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             }
 
             GameObject weaponGo = Instantiate(weaponData.weaponPrefab, transform);
-            
-            HandPositioning(weaponGo);
-            
-            var muzzle = weaponGo.GetComponentInChildren<Muzzle>();
+            _weaponHandler = weaponGo.GetComponent<WeaponHandler>();
+            HandPositioning(_weaponHandler);
+       
+            var muzzle = _weaponHandler.MuzzleHolder;
             if (muzzle == null)
             {
 #if UNITY_EDITOR
@@ -44,27 +44,19 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             }
 
             _weapon = weaponGo.AddComponent<StandardWeapon>();
-            _weapon.Initialize(weaponData, muzzle.transform);
+            _weapon.Initialize(weaponData, muzzle);
 
             _currentMap["Reload"].performed += OnReload;
             _currentMap["Fire"].performed += OnFireStart;
             _currentMap["Fire"].canceled += OnFireStop;
         }
 
-        private void HandPositioning(GameObject weaponGo)
+        private void HandPositioning(WeaponHandler handler)
         {
-            foreach (Hand hend in weaponGo.GetComponentsInChildren<Hand>())
-            {
-                if (hend.HandType == Hand.Type.Left)
-                {
-                    leftHand.position = hend.transform.position;
-                    leftHand.rotation = hend.transform.rotation;
-                } else
-                {
-                    rightHand.position = hend.transform.position;
-                    rightHand.rotation = hend.transform.rotation;
-                }
-            }
+            leftHand.position = handler.LeftHandHolder.position;
+            leftHand.rotation = handler.LeftHandHolder.rotation;
+            rightHand.position = handler.RightHandHolder.position;
+            rightHand.rotation = handler.RightHandHolder.rotation;
         }
 
         private void OnDestroy()
