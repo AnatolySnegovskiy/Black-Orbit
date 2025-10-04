@@ -1,4 +1,5 @@
-﻿using Unity.Mathematics;
+using Black_Orbit.Scripts.Faction.Runtime;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,6 +7,7 @@ namespace Black_Orbit.Scripts.FPS
 {
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(PlayerInput))]
+    [RequireComponent(typeof(FactionMember))]
     public class FirstPersonController : MonoBehaviour
     {
         [Header("Movement")]
@@ -19,7 +21,7 @@ namespace Black_Orbit.Scripts.FPS
         [SerializeField] private float jumpKickSpeed = 6f;
         [SerializeField] private float strafeTiltAngle = 5f;
         [SerializeField] private float strafeTiltSpeed = 5f;
-
+        
         private float _currentTilt; // Текущий угол поворота камеры по Z
         private float _targetTilt; // Целевой угол
         private float _lookX; // вращение вверх/вниз (вокруг X)
