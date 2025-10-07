@@ -1,5 +1,6 @@
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Considerations
 {
@@ -17,8 +18,8 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
         public float Evaluate(Blackboard.Blackboard bb)
         {
             float vis = bb.GetOrDefault(BlackboardKeys.TargetVisibility, 0f);
-            if (vis <= 0.05f) return 1f; // цель не видна
-            return _minWhenVisible; // немного желания искать
+            float raw = vis <= 0.05f ? 1f : Mathf.Max(_minWhenVisible, 1f - Mathf.Clamp01(vis));
+            return UtilityCurvesRegistry.Eval(UtilityCurvesRegistry.ExploreNeedCurve, raw);
         }
     }
 }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Considerations
 {
@@ -27,7 +28,8 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
             // Треугольная функция: максимум в середине диапазона
             float mid = (_min + _max) * 0.5f;
             float t = 1f - Mathf.Abs(d - mid) / (mid - _min);
-            return Mathf.Clamp01(t);
+            float raw = Mathf.Clamp01(t);
+            return UtilityCurvesRegistry.Eval(UtilityCurvesRegistry.GrenadeRangeCurve, raw);
         }
     }
 }

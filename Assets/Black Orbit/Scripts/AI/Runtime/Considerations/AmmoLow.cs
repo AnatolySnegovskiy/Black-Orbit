@@ -1,5 +1,6 @@
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
 using UnityEngine;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Considerations
 {
@@ -22,7 +23,8 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
             if (ammo <= _lowThreshold) return 1f;
             if (ammo >= _highThreshold) return 0f;
             float t = (ammo - _lowThreshold) / (float)(_highThreshold - _lowThreshold);
-            return 1f - Mathf.Clamp01(t);
+            float raw = 1f - Mathf.Clamp01(t);
+            return UtilityCurvesRegistry.Eval(UtilityCurvesRegistry.AmmoLowCurve, raw);
         }
     }
 }

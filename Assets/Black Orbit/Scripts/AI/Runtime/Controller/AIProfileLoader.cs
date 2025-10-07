@@ -7,6 +7,8 @@ using Black_Orbit.Scripts.AI.Runtime.Movement;
 using Black_Orbit.Scripts.AI.Runtime.Actions.Movement;
 using Black_Orbit.Scripts.AI.Runtime.Combat;
 using Black_Orbit.Scripts.AI.Runtime.Actions.Combat;
+using Black_Orbit.Scripts.AI.Runtime.Actions.Tactics;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Controller
 {
@@ -21,12 +23,25 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
             if (profile == null)
             {
 #if UNITY_EDITOR
-                Debug.LogWarning("[AIProfileLoader] Profile is null. Skipping.");
+                UnityEngine.Debug.LogWarning("[AIProfileLoader] Profile is null. Skipping.");
 #endif
                 return;
             }
 
             var ctrl = GetComponent<AIController>();
+
+            // Initialize Utility Curves registry from profile
+            if (profile.Curves != null)
+            {
+                UtilityCurvesRegistry.DistanceToTargetCurve = profile.Curves.distanceToTarget;
+                UtilityCurvesRegistry.VisibilityCurve = profile.Curves.visibility;
+                UtilityCurvesRegistry.LowHealthCurve = profile.Curves.lowHealth;
+                UtilityCurvesRegistry.AmmoLowCurve = profile.Curves.ammoLow;
+                UtilityCurvesRegistry.HasAmmoCurve = profile.Curves.hasAmmo;
+                UtilityCurvesRegistry.CoverAvailableCurve = profile.Curves.coverAvailable;
+                UtilityCurvesRegistry.ExploreNeedCurve = profile.Curves.exploreNeed;
+                UtilityCurvesRegistry.GrenadeRangeCurve = profile.Curves.grenadeRange;
+            }
 
             // Movement domain
             if (profile.Movement != null && profile.Movement.enabled)
@@ -38,7 +53,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                 if (motor == null)
                 {
 #if UNITY_EDITOR
-                    Debug.LogWarning("[AIProfileLoader] AIMovementMotor is missing for Movement domain.");
+                    UnityEngine.Debug.LogWarning("[AIProfileLoader] AIMovementMotor is missing for Movement domain.");
 #endif
                 }
                 else
@@ -61,7 +76,8 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                     {
                         domain.AddAction(new FlankEnemyAction(transform, motor,
                             profile.Movement.Flank.baseWeight,
-                            profile.Movement.Flank.flankDistance));
+                            profile.Movement.Flank.flankDistance,
+                            profile.Movement.Flank.orderBoost));
                     }
 
                     if (profile.Movement.TakeCover.enabled)
@@ -88,13 +104,15 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                     if (combat == null)
                     {
 #if UNITY_EDITOR
-                        Debug.LogWarning("[AIProfileLoader] AICombat is missing for Shoot action.");
+                        UnityEngine.Debug.LogWarning("[AIProfileLoader] AICombat is missing for Shoot action.");
 #endif
                     }
                     else
                     {
                         domain.AddAction(new ShootAction(transform, combat,
-                            profile.Combat.Shoot.baseWeight));
+                            profile.Combat.Shoot.baseWeight,
+                            profile.Combat.Shoot.retreatPenalty,
+                            profile.Combat.Shoot.suppressBoost));
                     }
                 }
 
@@ -103,7 +121,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                     if (combat == null)
                     {
 #if UNITY_EDITOR
-                        Debug.LogWarning("[AIProfileLoader] AICombat is missing for Reload action.");
+                        UnityEngine.Debug.LogWarning("[AIProfileLoader] AICombat is missing for Reload action.");
 #endif
                     }
                     else
@@ -120,7 +138,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                     if (thrower == null)
                     {
 #if UNITY_EDITOR
-                        Debug.LogWarning("[AIProfileLoader] AIGrenadeThrower is missing for ThrowGrenade action.");
+                        UnityEngine.Debug.LogWarning("[AIProfileLoader] AIGrenadeThrower is missing for ThrowGrenade action.");
 #endif
                     }
                     else
@@ -130,6 +148,40 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                             profile.Combat.ThrowGrenade.minRange,
                             profile.Combat.ThrowGrenade.maxRange,
                             profile.Combat.ThrowGrenade.cooldown));
+                    }
+                }
+            }
+
+            // Tactics domain
+            if (profile.Tactics != null && profile.Tactics.enabled)
+            {
+                ctrl.AddDomainIfMissing(DomainId.Tactics);
+                var domain = ctrl.GetDomain(DomainId.Tactics);
+
+                if (profile.Tactics.RetreatDecision.enabled)
+                {
+                    domain.AddAction(new RetreatDecisionAction(transform,
+                        profile.Tactics.RetreatDecision.baseWeight,
+                        profile.Tactics.RetreatDecision.retreatDistance,
+                        profile.Tactics.RetreatDecision.preferCover));
+                }
+
+                // RetreatMove регистрируется в Movement домене, т.к. это движение
+                if (profile.Tactics.RetreatMove.enabled)
+                {
+                    var motor = GetComponent<AIMovementMotor>();
+                    if (motor == null)
+                    {
+#if UNITY_EDITOR
+                        UnityEngine.Debug.LogWarning("[AIProfileLoader] AIMovementMotor is missing for RetreatMove action.");
+#endif
+                    }
+                    else
+                    {
+                        ctrl.AddDomainIfMissing(DomainId.Movement);
+                        var moveDomain = ctrl.GetDomain(DomainId.Movement);
+                        moveDomain.AddAction(new Black_Orbit.Scripts.AI.Runtime.Actions.Movement.RetreatMoveAction(transform, motor,
+                            profile.Tactics.RetreatMove.baseWeight));
                     }
                 }
             }

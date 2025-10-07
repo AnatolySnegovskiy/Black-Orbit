@@ -18,6 +18,30 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
 
         private Coroutine _loop;
 
+        // === Debug/Introspection ===
+        public class ActionScore
+        {
+            public string name;
+            public float score;
+            public DomainId domain;
+            public ExecutionType exec;
+        }
+
+        public class DecisionFrame
+        {
+            public float time;
+            public Dictionary<DomainId, ActionScore> winners = new();
+        }
+
+        public Dictionary<DomainId, List<ActionScore>> LastScores { get; private set; } = new();
+        public System.Action<DecisionFrame> OnDecision; // подпишется Behavior Log/Debug UI
+
+        private readonly Queue<DecisionFrame> _behaviorLog = new();
+        [SerializeField] private int behaviorLogCapacity = 64;
+
+        private static readonly List<AIController> _registry = new();
+        public static IReadOnlyList<AIController> Registry => _registry;
+
         private void Awake()
         {
             Blackboard = new Blackboard.Blackboard();
@@ -27,12 +51,14 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
         private void OnEnable()
         {
             _loop = StartCoroutine(Loop());
+            if (!_registry.Contains(this)) _registry.Add(this);
         }
 
         private void OnDisable()
         {
             if (_loop != null) StopCoroutine(_loop);
             foreach (var d in _domains.Values) d.Deactivate(Blackboard);
+            _registry.Remove(this);
         }
 
         private IEnumerator Loop()
@@ -49,9 +75,19 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
         {
             // 1) Оценка лучших действий по доменам
             var winners = new List<AIAction>();
+            LastScores.Clear();
             foreach (var kv in _domains)
             {
                 var domain = kv.Value;
+                // Собираем оценки всех действий домена
+                var scores = new List<ActionScore>();
+                foreach (var a in domain.Actions)
+                {
+                    var s = a.ComputeUtility(Blackboard);
+                    scores.Add(new ActionScore { name = a.Name, score = s, domain = domain.Id, exec = a.Execution });
+                }
+                LastScores[domain.Id] = scores;
+
                 var best = domain.EvaluateBest(Blackboard);
                 if (best != null) winners.Add(best);
             }
@@ -85,6 +121,25 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
             {
                 d.TickActive(Blackboard, dt);
             }
+
+            // 4) Снапшот победителей для Debug/Log
+            var frame = new DecisionFrame { time = Time.time };
+            foreach (var kv in _domains)
+            {
+                var domain = kv.Value;
+                var active = domain.GetActive();
+                if (active == null) continue;
+                frame.winners[domain.Id] = new ActionScore
+                {
+                    name = active.Name,
+                    score = 0f, // детальный скор активного можно найти в LastScores
+                    domain = domain.Id,
+                    exec = active.Execution
+                };
+            }
+            OnDecision?.Invoke(frame);
+            _behaviorLog.Enqueue(frame);
+            while (_behaviorLog.Count > behaviorLogCapacity) _behaviorLog.Dequeue();
         }
 
         private void EnsureDomains()
@@ -102,5 +157,8 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
             if (_domains.ContainsKey(id)) return;
             _domains[id] = new AIDomain(id);
         }
+
+        // Доступ к Behavior Log для Debug UI
+        public IEnumerable<DecisionFrame> GetBehaviorLog() => _behaviorLog;
     }
 }

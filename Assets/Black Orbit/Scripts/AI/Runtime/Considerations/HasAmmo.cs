@@ -1,4 +1,5 @@
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Considerations
 {
@@ -8,7 +9,8 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
         public float Evaluate(Blackboard.Blackboard bb)
         {
             int ammo = bb.GetOrDefault(BlackboardKeys.SelfAmmo, 0);
-            return ammo > 0 ? 1f : 0f;
+            float raw = ammo > 0 ? 1f : 0f;
+            return UtilityCurvesRegistry.Eval(UtilityCurvesRegistry.HasAmmoCurve, raw);
         }
     }
 }

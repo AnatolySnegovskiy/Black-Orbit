@@ -23,7 +23,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Domains
                 _actions.Add(action);
         }
 
-        public AIAction EvaluateBest(Blackboard bb)
+        public AIAction EvaluateBest(Blackboard.Blackboard bb)
         {
             AIAction best = null;
             float bestScore = 0f;
@@ -39,13 +39,13 @@ namespace Black_Orbit.Scripts.AI.Runtime.Domains
             return best;
         }
 
-        public void TickActive(Blackboard bb, float dt)
+        public void TickActive(Blackboard.Blackboard bb, float dt)
         {
             _active?.Tick(bb, dt);
         }
 
         // Управление активностью внутри домена (одна активная в домене)
-        public void Activate(Blackboard bb, AIAction action)
+        public void Activate(Blackboard.Blackboard bb, AIAction action)
         {
             if (_active == action) return;
             _active?.Stop(bb);
@@ -53,7 +53,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Domains
             _active?.Start(bb);
         }
 
-        public void Deactivate(Blackboard bb)
+        public void Deactivate(Blackboard.Blackboard bb)
         {
             _active?.Stop(bb);
             _active = null;

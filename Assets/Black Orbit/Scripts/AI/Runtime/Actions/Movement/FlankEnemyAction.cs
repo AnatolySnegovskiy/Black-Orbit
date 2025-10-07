@@ -11,14 +11,16 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
         private readonly Transform _agent;
         private readonly AIMovementMotor _motor;
         private readonly float _flankDistance;
+        private readonly float _orderBoost;
         private Vector3 _goal;
 
-        public FlankEnemyAction(Transform agent, AIMovementMotor motor, float baseWeight = 0.8f, float flankDistance = 10f)
+        public FlankEnemyAction(Transform agent, AIMovementMotor motor, float baseWeight = 0.8f, float flankDistance = 10f, float orderBoost = 1.0f)
             : base(DomainId.Movement, ExecutionType.Parallel, baseWeight)
         {
             _agent = agent;
             _motor = motor;
             _flankDistance = Mathf.Max(3f, flankDistance);
+            _orderBoost = Mathf.Max(0.1f, orderBoost);
         }
 
         public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
@@ -29,6 +31,15 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
         }
 
         public override bool CanStart(Blackboard.Blackboard bb) => _motor != null;
+
+        public override float ComputeUtility(Blackboard.Blackboard bb)
+        {
+            float u = base.ComputeUtility(bb);
+            var order = bb.GetOrDefault(BlackboardKeys.SquadOrderKey, SquadOrder.None);
+            if (order == SquadOrder.FlankLeft || order == SquadOrder.FlankRight)
+                u *= _orderBoost;
+            return u;
+        }
 
         protected override void OnStart(Blackboard.Blackboard bb)
         {

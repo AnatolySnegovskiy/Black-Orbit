@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Considerations
 {
@@ -30,7 +31,8 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
             }
 
             if (best == float.MaxValue) return 0f;
-            return Mathf.Clamp01(1f - Mathf.Clamp01(best / _searchRadius));
+            float raw = Mathf.Clamp01(1f - Mathf.Clamp01(best / _searchRadius));
+            return UtilityCurvesRegistry.Eval(UtilityCurvesRegistry.CoverAvailableCurve, raw);
         }
     }
 }

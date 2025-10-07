@@ -14,6 +14,8 @@ namespace Black_Orbit.Scripts.AI.Runtime.Blackboard
         public static readonly BlackboardKey<int> SelfAmmo = new("Self.Ammo");
         public static readonly BlackboardKey<bool> SelfInCover = new("Self.InCover");
         public static readonly BlackboardKey<Vector3> SelfExplorePoint = new("Self.ExplorePoint");
+        public static readonly BlackboardKey<bool> SelfRetreating = new("Self.Retreating");
+        public static readonly BlackboardKey<Vector3> SelfRetreatPoint = new("Self.RetreatPoint");
 
         // Squad
         public static readonly BlackboardKey<SquadOrder> SquadOrderKey = new("Squad.Orders");
