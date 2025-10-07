@@ -10,6 +10,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
     [CreateAssetMenu(menuName = "AI/Actions/SuppressionFire", fileName = "SuppressionFire")]
     public class SuppressionFireAction : UtilityAction
     {
+        public override ActionChannel Channel => ActionChannel.Combat;
         [Header("Параметры подавления")]
         [Tooltip("Максимальное время с последнего обнаружения для подавления (секунды)")]
         public float maxTimeSinceSeen = 3f;

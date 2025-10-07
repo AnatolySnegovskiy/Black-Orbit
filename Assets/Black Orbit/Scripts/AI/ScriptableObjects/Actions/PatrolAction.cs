@@ -10,6 +10,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
     [CreateAssetMenu(menuName = "AI/Actions/Patrol", fileName = "Patrol")]
     public class PatrolAction : UtilityAction
     {
+        public override ActionChannel Channel => ActionChannel.Movement;
         [Header("Параметры патрулирования")]
         [Tooltip("Радиус достижения точки патруля (метры)")]
         public float waypointTolerance = 0.6f;

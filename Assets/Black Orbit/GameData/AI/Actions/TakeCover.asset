@@ -100,5 +100,9 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  searchRadius: 12
-  repathInterval: 0.4
+  searchRadius: 18
+  samples: 24
+  repathInterval: 0.5
+  coverReachedDistance: 1.5
+  preferWhenUnderThreat: 1
+  coverCacheDuration: 1.5

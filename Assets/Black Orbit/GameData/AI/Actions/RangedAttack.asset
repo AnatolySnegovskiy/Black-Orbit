@@ -101,6 +101,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  preferredRange: 12
-  minRange: 4
-  fireCooldown: 0.6
+  preferredRange: 20
+  minRange: 6
+  fireCooldown: 0.7

@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &3998290254035047330
+--- !u!1 &3012046557842920761
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,189 +8,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 9206063209984096030}
-  - component: {fileID: 7167210665395778735}
-  - component: {fileID: 498359699366992965}
-  - component: {fileID: 5255370968932235955}
-  - component: {fileID: 333100889647832156}
-  - component: {fileID: 4009259024383132978}
-  - component: {fileID: 5172823744035101392}
-  m_Layer: 0
-  m_Name: AggressiveFighter
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &9206063209984096030
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3998290254035047330}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 6612886414687472922}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7167210665395778735
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3998290254035047330}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a628d7ec3509c5438ee52d861672e9e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Black_Orbit.Scripts.Faction.Runtime.FactionMember
-  faction: {fileID: 11400000, guid: a7ea5ebc7b89aa144aaf1a3a1741b422, type: 2}
---- !u!195 &498359699366992965
-NavMeshAgent:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3998290254035047330}
-  m_Enabled: 1
-  m_AgentTypeID: 0
-  m_Radius: 0.5
-  m_Speed: 3.5
-  m_Acceleration: 8
-  avoidancePriority: 50
-  m_AngularSpeed: 120
-  m_StoppingDistance: 0.5
-  m_AutoTraverseOffMeshLink: 1
-  m_AutoBraking: 1
-  m_AutoRepath: 1
-  m_Height: 2
-  m_BaseOffset: 0
-  m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
---- !u!54 &5255370968932235955
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3998290254035047330}
-  serializedVersion: 5
-  m_Mass: 70
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 112
-  m_CollisionDetection: 0
---- !u!114 &333100889647832156
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3998290254035047330}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb673705229954942aaab5da854e341f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Black_Orbit.Scripts.AI.Runtime.AI
-  target: {fileID: 0}
-  rb: {fileID: 0}
-  agent: {fileID: 0}
-  moveSpeed: 5
-  rotationSpeed: 7
-  detectionRange: 15
-  visionAngle: 140
-  visionRange: 20
-  obstacleMask:
-    serializedVersion: 2
-    m_Bits: 0
-  coverMask:
-    serializedVersion: 2
-    m_Bits: 0
-  targetSearchInterval: 0.5
-  meleeAttackRange: 3
-  rangedAttackRange: 30
-  health: 120
-  patrolPoints: []
-  patrolIndex: 0
-  actions:
-  - {fileID: 11400000, guid: a0c75a09b0cca5a49b798139c9a28af2, type: 2}
-  - {fileID: 11400000, guid: 4d32ee817f5f3034891569c886be7cb1, type: 2}
-  - {fileID: 11400000, guid: 3b82bb175b55c624390dc4840ebf3e69, type: 2}
-  - {fileID: 11400000, guid: c7bd0b4bea27d54439accf62fe7bdd14, type: 2}
-  - {fileID: 11400000, guid: cb9c4c49252119f4889efcff99d9e9ea, type: 2}
-  squad: {fileID: 0}
-  lastSeenTargetPos: {x: Infinity, y: Infinity, z: Infinity}
-  timeSinceLastSeen: 3.4028235e+38
-  hasLineOfSight: 0
---- !u!136 &4009259024383132978
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3998290254035047330}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0, y: 1, z: 0}
---- !u!114 &5172823744035101392
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3998290254035047330}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 65004b7a8f43022439f25d7c7993793c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Black_Orbit.Scripts.AI.Runtime.AIWeaponHandler
-  weaponData: {fileID: 0}
-  muzzlePoint: {fileID: 0}
-  autoInitialize: 1
---- !u!1 &9087237779841731385
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 6612886414687472922}
-  - component: {fileID: 5413465133078726533}
-  - component: {fileID: 2568301929441502540}
+  - component: {fileID: 503015969866647244}
+  - component: {fileID: 5098541273167932986}
+  - component: {fileID: 999869408805269240}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -198,36 +18,36 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6612886414687472922
+--- !u!4 &503015969866647244
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9087237779841731385}
+  m_GameObject: {fileID: 3012046557842920761}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 9206063209984096030}
+  m_Father: {fileID: 8515628011403264659}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &5413465133078726533
+--- !u!33 &5098541273167932986
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9087237779841731385}
+  m_GameObject: {fileID: 3012046557842920761}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
---- !u!23 &2568301929441502540
+--- !u!23 &999869408805269240
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9087237779841731385}
+  m_GameObject: {fileID: 3012046557842920761}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -269,3 +89,214 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6949535540529721188
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8515628011403264659}
+  - component: {fileID: 7943409144278431979}
+  - component: {fileID: 4957711414524513299}
+  - component: {fileID: 4238435012673211617}
+  - component: {fileID: 4266647519042563249}
+  - component: {fileID: 3395817170370677944}
+  - component: {fileID: 597620880319375450}
+  - component: {fileID: 1453175381728084350}
+  m_Layer: 0
+  m_Name: AggressiveFighter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8515628011403264659
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6949535540529721188}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 503015969866647244}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7943409144278431979
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6949535540529721188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a628d7ec3509c5438ee52d861672e9e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Black_Orbit.Scripts.Faction.Runtime.FactionMember
+  faction: {fileID: 11400000, guid: a7ea5ebc7b89aa144aaf1a3a1741b422, type: 2}
+--- !u!195 &4957711414524513299
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6949535540529721188}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0.5
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!54 &4238435012673211617
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6949535540529721188}
+  serializedVersion: 5
+  m_Mass: 70
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 112
+  m_CollisionDetection: 0
+--- !u!114 &4266647519042563249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6949535540529721188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b86ed24228f7ff0458a4843cf84f5409, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Black_Orbit.Scripts.Core.Runtime.Health
+  maxHealth: 100
+  currentHealth: 100
+  invulnerable: 0
+  destroyOnDeath: 0
+  disableOnDeath: {fileID: 6949535540529721188}
+--- !u!114 &3395817170370677944
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6949535540529721188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb673705229954942aaab5da854e341f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Black_Orbit.Scripts.AI.Runtime.AI
+  attackTarget: {fileID: 0}
+  rb: {fileID: 0}
+  agent: {fileID: 0}
+  moveSpeed: 5.2
+  rotationSpeed: 7.5
+  detectionRange: 30
+  visionAngle: 140
+  visionRange: 40
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 0
+  coverMask:
+    serializedVersion: 2
+    m_Bits: 0
+  targetSearchInterval: 0.4
+  meleeAttackRange: 3
+  rangedAttackRange: 35
+  healthComponent: {fileID: 4266647519042563249}
+  patrolPoints: []
+  patrolIndex: 0
+  actions:
+  - {fileID: 11400000, guid: a0c75a09b0cca5a49b798139c9a28af2, type: 2}
+  - {fileID: 11400000, guid: 4d32ee817f5f3034891569c886be7cb1, type: 2}
+  - {fileID: 11400000, guid: 3b82bb175b55c624390dc4840ebf3e69, type: 2}
+  - {fileID: 11400000, guid: c7bd0b4bea27d54439accf62fe7bdd14, type: 2}
+  - {fileID: 11400000, guid: dd55a39094001ba4cb0a7e9ed1a7d083, type: 2}
+  - {fileID: 11400000, guid: 653be620ddcf56d4993fc12971c2cbe3, type: 2}
+  - {fileID: 11400000, guid: cb9c4c49252119f4889efcff99d9e9ea, type: 2}
+  settings: {fileID: 0}
+  showGizmosVision: 1
+  showGizmosDetection: 1
+  showGizmosAttackRanges: 1
+  showGizmosLastSeen: 1
+  showGizmosNavTarget: 1
+  showGizmosInfoLabel: 1
+  suppressionDecayRate: 0.25
+  squad: {fileID: 0}
+  lastSeenTargetPos: {x: Infinity, y: Infinity, z: Infinity}
+  timeSinceLastSeen: 3.4028235e+38
+  hasLineOfSight: 0
+--- !u!136 &597620880319375450
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6949535540529721188}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 1, z: 0}
+--- !u!114 &1453175381728084350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6949535540529721188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65004b7a8f43022439f25d7c7993793c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Black_Orbit.Scripts.AI.Runtime.AIWeaponHandler
+  weaponData: {fileID: 0}
+  muzzlePoint: {fileID: 0}
+  autoInitialize: 1
+  autoReload: 1
+  reloadOnLowAmmoThreshold: 1
+  reloadCheckInterval: 0.15

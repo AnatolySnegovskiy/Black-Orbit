@@ -14,18 +14,18 @@ AIWeaponHandler:
 ├─ Weapon Data: [перетащите WeaponScriptableObject]
 ├─ Muzzle Point: [опционально, создастся автоматически]
 └─ Auto Initialize: ✓ (оставьте включённым)
-```
 
 **Weapon Data** — это ваш существующий ScriptableObject оружия (например, `AssaultRifle`, `Pistol` и т.д.)
 
 ### 3. Готово!
 
-`RangedAttackAction` автоматически найдёт `AIWeaponHandler` и будет стрелять через вашу `WeaponSystem`.
+`RangedAttackAction` автоматически найдёт `AIWeaponHandler` и будет стрелять через `WeaponSystem`!
 
 ---
 
-## Как это работает
+## Интеграция с PeekAndShoot
 
+### ReleaseTrigger
 ### Архитектура
 
 ```

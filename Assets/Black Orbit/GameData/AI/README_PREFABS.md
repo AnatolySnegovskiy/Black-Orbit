@@ -29,7 +29,7 @@
 **Действия:**
 - Patrol, Explore, SearchLastKnown
 - Pursue, Flank, TakeCover
-- RangedAttack, SuppressionFire
+- RangedAttack, PeekAndShoot, SuppressionFire
 
 **Использование:** Универсальный враг для любых ситуаций
 
@@ -47,7 +47,7 @@
 
 **Действия:**
 - Pursue, RangedAttack, MeleeAttack
-- Flank, SearchLastKnown
+- Flank, TakeCover, PeekAndShoot, SearchLastKnown
 
 **Использование:** Для интенсивных боёв, агрессивные атаки
 
@@ -65,7 +65,7 @@
 
 **Действия:**
 - Patrol, TakeCover, RangedAttack
-- SuppressionFire, Retreat
+- PeekAndShoot, SuppressionFire, Retreat
 
 **Особенности:**
 - RangedAttack.preferredRange = 25м
@@ -117,13 +117,13 @@
 
 **Члены:**
 1. **Rusher** — штурмовик
-   - Действия: Pursue, RangedAttack, Flank
+   - Действия: Pursue, RangedAttack, Flank, TakeCover, PeekAndShoot
    
 2. **Flanker** — фланкёр
-   - Действия: Flank, RangedAttack, TakeCover
+   - Действия: Flank, RangedAttack, TakeCover, PeekAndShoot
    
 3. **Suppressor** — подавление
-   - Действия: RangedAttack, SuppressionFire, TakeCover
+   - Действия: RangedAttack, SuppressionFire, TakeCover, PeekAndShoot
 
 **Настройки squad:**
 - Search Radius: 20м
@@ -139,7 +139,7 @@
 
 **Члены:**
 4x **Assaulter** — штурмовики
-- Действия: Pursue, RangedAttack, Flank, MeleeAttack
+- Действия: Pursue, RangedAttack, Flank, MeleeAttack, TakeCover, PeekAndShoot
 - Health: 120
 - Move Speed: 4.5 м/с
 
@@ -157,7 +157,7 @@
 
 **Члены:**
 1. **Sniper_1** — снайпер
-   - Действия: RangedAttack, TakeCover, SuppressionFire
+   - Действия: RangedAttack, TakeCover, PeekAndShoot, SuppressionFire
    - Vision Range: 30м
    - Vision Angle: 90°
    
@@ -165,7 +165,7 @@
    - Аналогично Sniper_1
    
 3. **Spotter** — наблюдатель/прикрытие
-   - Действия: Patrol, SearchLastKnown, RangedAttack, TakeCover
+   - Действия: Patrol, SearchLastKnown, RangedAttack, TakeCover, PeekAndShoot
 
 **Настройки squad:**
 - Search Radius: 30м
@@ -232,6 +232,10 @@ SquadName (GameObject)
 1. **Создайте действия:**
    - Tools → AI → Generate Action Assets
    - Или создайте вручную в `GameData/AI/Actions/`
+
+4. **(Опционально) AISettings:**
+   - Создайте `Assets/Black Orbit/GameData/AI/Settings/AISettings.asset`
+   - Генератор автоматически назначит его на создаваемые AI
 
 2. **Настройте слои:**
    - Player, Enemy, Cover, Obstacle

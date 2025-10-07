@@ -19,6 +19,7 @@ namespace Black_Orbit.Scripts.AI.Editor
         private const string OUTPUT_PATH = "Assets/Black Orbit/Prefabs/AI/Prefabs";
         private const string ACTIONS_PATH = "Assets/Black Orbit/GameData/AI/Actions";
         private const string FACTIONS_PATH = "Assets/Black Orbit/GameData/Factions";
+        private const string SETTINGS_ASSET_PATH = "Assets/Black Orbit/GameData/AI/Settings/AISettings.asset";
         
         private Vector2 scrollPos;
         private string customName = "CustomAI";
@@ -190,28 +191,32 @@ namespace Black_Orbit.Scripts.AI.Editor
             
             // Настройки
             ai.InitializeParameters(
-                moveSpd: 3.5f,
+                moveSpd: 3.6f,
                 rotSpd: 5f,
-                detectRange: 12f,
+                detectRange: 25f,
                 meleeRange: 2f,
-                rangedRange: 25f,
-                visAngle: 120f,
-                visRange: 18f,
+                rangedRange: 30f,
+                visAngle: 130f,
+                visRange: 35f,
                 hp: 100f,
-                targetSearchInt: 1f
+                targetSearchInt: 0.8f
             );
             
             // Действия
             ai.SetActions(LoadActions(new[]
             {
-                "Patrol", "Explore", "SearchLastKnown", 
-                "Pursue", "Flank", "TakeCover", 
-                "RangedAttack", "SuppressionFire"
+                "Patrol", "Explore", "SearchLastKnown",
+                "Pursue", "Flank", "TakeCover",
+                "RangedAttack", "PeekAndShoot", "SuppressionFire"
             }));
+            TryAssignAISettings(ai);
             
             // Оружие
             var weaponHandler = prefab.AddComponent<AIWeaponHandlerComponent>();
             weaponHandler.autoInitialize = true;
+            weaponHandler.autoReload = true;
+            weaponHandler.reloadOnLowAmmoThreshold = 2; // тактик перезаряжается заранее
+            weaponHandler.reloadCheckInterval = 0.2f;
             
             SavePrefab(prefab, "TacticalShooter");
             Debug.Log($"✅ Создан: Тактический стрелок (Фракция: {ai.faction?.factionName ?? "None"})");
@@ -223,25 +228,29 @@ namespace Black_Orbit.Scripts.AI.Editor
             var ai = prefab.GetComponent<AIComponent>();
             
             ai.InitializeParameters(
-                moveSpd: 5f,
-                rotSpd: 7f,
-                detectRange: 15f,
+                moveSpd: 5.2f,
+                rotSpd: 7.5f,
+                detectRange: 30f,
                 meleeRange: 3f,
-                rangedRange: 30f,
+                rangedRange: 35f,
                 visAngle: 140f,
-                visRange: 20f,
+                visRange: 40f,
                 hp: 120f,
-                targetSearchInt: 0.5f
+                targetSearchInt: 0.4f
             );
             
             ai.SetActions(LoadActions(new[]
             {
-                "Pursue", "RangedAttack", "MeleeAttack", 
-                "Flank", "SearchLastKnown"
+                "Pursue", "RangedAttack", "MeleeAttack",
+                "Flank", "TakeCover", "PeekAndShoot", "SearchLastKnown"
             }));
+            TryAssignAISettings(ai);
             
             var weaponHandler = prefab.AddComponent<AIWeaponHandlerComponent>();
             weaponHandler.autoInitialize = true;
+            weaponHandler.autoReload = true;
+            weaponHandler.reloadOnLowAmmoThreshold = 1; // агрессивный — терпит до минимума
+            weaponHandler.reloadCheckInterval = 0.15f;
             
             SavePrefab(prefab, "AggressiveFighter");
             Debug.Log($"✅ Создан: Агрессивный боец (Фракция: {ai.faction?.factionName ?? "None"})");
@@ -255,23 +264,27 @@ namespace Black_Orbit.Scripts.AI.Editor
             ai.InitializeParameters(
                 moveSpd: 2.5f,
                 rotSpd: 3f,
-                detectRange: 100f,
+                detectRange: 120f,
                 meleeRange: 1f,
-                rangedRange: 150f,
-                visAngle: 90f,
-                visRange: 150f,
+                rangedRange: 180f,
+                visAngle: 95f,
+                visRange: 180f,
                 hp: 80f,
-                targetSearchInt: 1.5f
+                targetSearchInt: 1.2f
             );
             
             ai.SetActions(LoadActions(new[]
             {
-                "Patrol", "TakeCover", "RangedAttack", 
-                "SuppressionFire", "Retreat"
+                "Patrol", "TakeCover", "RangedAttack",
+                "PeekAndShoot", "SuppressionFire", "Retreat"
             }));
+            TryAssignAISettings(ai);
             
             var weaponHandler = prefab.AddComponent<AIWeaponHandlerComponent>();
             weaponHandler.autoInitialize = true;
+            weaponHandler.autoReload = true;
+            weaponHandler.reloadOnLowAmmoThreshold = 5; // снайпер — перезаряжается заранее
+            weaponHandler.reloadCheckInterval = 0.3f;
             
             // Настройка RangedAttack для снайпера (если есть)
             var rangedAttack = LoadAction("RangedAttack") as RangedAttackAction;
@@ -293,11 +306,11 @@ namespace Black_Orbit.Scripts.AI.Editor
             ai.InitializeParameters(
                 moveSpd: 6f,
                 rotSpd: 8f,
-                detectRange: 12f,
+                detectRange: 20f,
                 meleeRange: 5f,
-                rangedRange: 10f,
+                rangedRange: 12f,
                 visAngle: 160f,
-                visRange: 15f,
+                visRange: 25f,
                 hp: 150f,
                 targetSearchInt: 0.3f
             );
@@ -306,6 +319,7 @@ namespace Black_Orbit.Scripts.AI.Editor
             {
                 "Pursue", "MeleeAttack", "Flank"
             }));
+            TryAssignAISettings(ai);
             
             SavePrefab(prefab, "Berserker");
             Debug.Log($"✅ Создан: Берсерк (Фракция: {ai.faction?.factionName ?? "None"})");
@@ -317,15 +331,15 @@ namespace Black_Orbit.Scripts.AI.Editor
             var ai = prefab.GetComponent<AIComponent>();
             
             ai.InitializeParameters(
-                moveSpd: 3f,
-                rotSpd: 4f,
-                detectRange: 10f,
+                moveSpd: 3.2f,
+                rotSpd: 4.2f,
+                detectRange: 20f,
                 meleeRange: 2f,
-                rangedRange: 20f,
-                visAngle: 90f,
-                visRange: 15f,
+                rangedRange: 25f,
+                visAngle: 100f,
+                visRange: 25f,
                 hp: 80f,
-                targetSearchInt: 1f
+                targetSearchInt: 0.9f
             );
             
             ai.SetActions(LoadActions(new[]
@@ -333,6 +347,7 @@ namespace Black_Orbit.Scripts.AI.Editor
                 "Patrol", "Explore", "SearchLastKnown", 
                 "Pursue", "Retreat"
             }));
+            TryAssignAISettings(ai);
             
             SavePrefab(prefab, "Scout");
             Debug.Log($"✅ Создан: Патрульный (Фракция: {ai.faction?.factionName ?? "None"})");
@@ -354,13 +369,13 @@ namespace Black_Orbit.Scripts.AI.Editor
             
             // Создаём 3 членов отряда
             var member1 = CreateSquadMember(squad.transform, "Rusher", 0);
-            ConfigureSquadMember(member1, "Pursue", "RangedAttack", "Flank");
+            ConfigureSquadMember(member1, "Pursue", "RangedAttack", "Flank", "TakeCover", "PeekAndShoot");
             
             var member2 = CreateSquadMember(squad.transform, "Flanker", 1);
-            ConfigureSquadMember(member2, "Flank", "RangedAttack", "TakeCover");
+            ConfigureSquadMember(member2, "Flank", "RangedAttack", "TakeCover", "PeekAndShoot");
             
             var member3 = CreateSquadMember(squad.transform, "Suppressor", 2);
-            ConfigureSquadMember(member3, "RangedAttack", "SuppressionFire", "TakeCover");
+            ConfigureSquadMember(member3, "RangedAttack", "SuppressionFire", "TakeCover", "PeekAndShoot");
             
             // Добавляем в squad
             squadComponent.members.Add(member1.GetComponent<AIComponent>());
@@ -386,7 +401,7 @@ namespace Black_Orbit.Scripts.AI.Editor
             for (int i = 0; i < 2; i++)
             {
                 var member = CreateSquadMember(squad.transform, $"Assaulter_{i + 1}", i);
-                ConfigureSquadMember(member, "Pursue", "MeleeAttack", "RangedAttack");
+                ConfigureSquadMember(member, "Pursue", "MeleeAttack", "RangedAttack", "TakeCover", "PeekAndShoot");
                 
                 var ai = member.GetComponent<AIComponent>();
                 ai.InitializeParameters(
@@ -408,7 +423,7 @@ namespace Black_Orbit.Scripts.AI.Editor
             for (int i = 0; i < 2; i++)
             {
                 var member = CreateSquadMember(squad.transform, $"Rifleman_{i + 1}", i + 2);
-                ConfigureSquadMember(member, "RangedAttack", "Flank", "TakeCover");
+                ConfigureSquadMember(member, "RangedAttack", "Flank", "TakeCover", "PeekAndShoot");
                 
                 var ai = member.GetComponent<AIComponent>();
                 ai.InitializeParameters(
@@ -448,7 +463,7 @@ namespace Black_Orbit.Scripts.AI.Editor
             for (int i = 0; i < 2; i++)
             {
                 var sniper = CreateSquadMember(squad.transform, $"Sniper_{i + 1}", i);
-                ConfigureSquadMember(sniper, "RangedAttack", "TakeCover", "SuppressionFire");
+                ConfigureSquadMember(sniper, "RangedAttack", "TakeCover", "PeekAndShoot", "SuppressionFire");
                 
                 var ai = sniper.GetComponent<AIComponent>();
                 ai.InitializeParameters(
@@ -468,7 +483,7 @@ namespace Black_Orbit.Scripts.AI.Editor
             
             // 1 прикрытие
             var spotter = CreateSquadMember(squad.transform, "Spotter", 2);
-            ConfigureSquadMember(spotter, "Patrol", "SearchLastKnown", "RangedAttack", "TakeCover");
+            ConfigureSquadMember(spotter, "Patrol", "SearchLastKnown", "RangedAttack", "TakeCover", "PeekAndShoot");
             squadComponent.members.Add(spotter.GetComponent<AIComponent>());
             
             // Получаем данные ДО сохранения (SavePrefab уничтожает объект)
@@ -545,16 +560,24 @@ namespace Black_Orbit.Scripts.AI.Editor
             ai.InitializeParameters(
                 moveSpd: 3.5f,
                 rotSpd: 5f,
-                detectRange: 10f,
+                detectRange: 20f,
                 meleeRange: 2f,
-                rangedRange: 20f,
+                rangedRange: 25f,
                 visAngle: 120f,
-                visRange: 15f,
+                visRange: 30f,
                 hp: 100f,
-                targetSearchInt: 1f
+                targetSearchInt: 0.8f
             );
             
-            ai.SetActions(LoadActions(new[] { "Patrol", "Pursue", "RangedAttack" }));
+            ai.SetActions(LoadActions(new[] { "Patrol", "Pursue", "RangedAttack", "TakeCover", "PeekAndShoot" }));
+            TryAssignAISettings(ai);
+            
+            // Оружие базового AI
+            var weaponHandler = prefab.AddComponent<AIWeaponHandlerComponent>();
+            weaponHandler.autoInitialize = true;
+            weaponHandler.autoReload = true;
+            weaponHandler.reloadOnLowAmmoThreshold = 2;
+            weaponHandler.reloadCheckInterval = 0.2f;
             
             SavePrefab(prefab, name);
             Debug.Log($"✅ Создан: {name} (Фракция: {ai.faction?.factionName ?? "None"})");
@@ -585,18 +608,21 @@ namespace Black_Orbit.Scripts.AI.Editor
             ai.InitializeParameters(
                 moveSpd: 3.5f,
                 rotSpd: 5f,
-                detectRange: 12f,
+                detectRange: 20f,
                 meleeRange: 2f,
                 rangedRange: 25f,
                 visAngle: 120f,
-                visRange: 18f,
+                visRange: 30f,
                 hp: 100f,
-                targetSearchInt: 1f
+                targetSearchInt: 0.8f
             );
             
             // Добавляем оружие
             var weaponHandler = member.AddComponent<AIWeaponHandlerComponent>();
             weaponHandler.autoInitialize = true;
+            weaponHandler.autoReload = true;
+            weaponHandler.reloadOnLowAmmoThreshold = 2;
+            weaponHandler.reloadCheckInterval = 0.2f;
             
             return member;
         }
@@ -605,6 +631,7 @@ namespace Black_Orbit.Scripts.AI.Editor
         {
             var ai = member.GetComponent<AIComponent>();
             ai.SetActions(LoadActions(actionNames));
+            TryAssignAISettings(ai);
         }
 
         static UtilityAction[] LoadActions(string[] actionNames)
@@ -635,6 +662,20 @@ namespace Black_Orbit.Scripts.AI.Editor
             
             return action;
         }
+
+        static void TryAssignAISettings(AIComponent ai)
+        {
+            if (ai == null) return;
+            var settings = AssetDatabase.LoadAssetAtPath<Black_Orbit.Scripts.AI.Runtime.Core.AISettings>(SETTINGS_ASSET_PATH);
+            if (settings == null) return;
+            var so = new SerializedObject(ai);
+            var prop = so.FindProperty("settings");
+            if (prop != null)
+            {
+                prop.objectReferenceValue = settings;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
         
         static FactionData LoadFaction(string factionName)
         {
@@ -661,7 +702,7 @@ namespace Black_Orbit.Scripts.AI.Editor
             // Определяем путь с учётом фракции
             string factionFolder = _selectedFaction != null ? _selectedFaction.factionName : "NoFaction";
             string fullPath = $"{OUTPUT_PATH}/{factionFolder}";
-            
+
             // Создаём базовую папку если не существует
             if (!AssetDatabase.IsValidFolder(OUTPUT_PATH))
             {
@@ -672,21 +713,41 @@ namespace Black_Orbit.Scripts.AI.Editor
                 }
                 AssetDatabase.CreateFolder(parentPath, "Prefabs");
             }
-            
+
             // Создаём папку фракции если не существует
             if (!AssetDatabase.IsValidFolder(fullPath))
             {
                 AssetDatabase.CreateFolder(OUTPUT_PATH, factionFolder);
             }
-            
+
             string path = $"{fullPath}/{name}.prefab";
-            
+
+            // Проверяем, существует ли уже префаб
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null)
+            {
+                bool overwrite = EditorUtility.DisplayDialog(
+                    "Префаб существует",
+                    $"{name}.prefab уже существует. Перезаписать?\n{path}",
+                    "Да",
+                    "Нет");
+                if (!overwrite)
+                {
+                    // Отклонено: удаляем временный объект и выходим
+                    Object.DestroyImmediate(go);
+                    return;
+                }
+                // Удаляем старый, как в генераторе Action Asset
+                AssetDatabase.DeleteAsset(path);
+            }
+
             PrefabUtility.SaveAsPrefabAsset(go, path);
             Object.DestroyImmediate(go);
-            
+
+            AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            
-            Debug.Log($"💾 Сохранён в: {fullPath}/");
+
+            Debug.Log($"💾 Сохранён: {path}");
         }
     }
 }

@@ -74,5 +74,5 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  tolerance: 0.7
-  scanTime: 3
+  tolerance: 1.5
+  scanTime: 4.5

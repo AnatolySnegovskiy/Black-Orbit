@@ -21,6 +21,12 @@ namespace Black_Orbit.Scripts.AI.Runtime
         [Tooltip("Автоматически создать StandardWeapon при старте")]
         public bool autoInitialize = true;
 
+        [Header("Перезарядка")]
+        [Tooltip("Автоматически перезаряжать, если магазин пуст или ниже порога")] public bool autoReload = true;
+        [Tooltip("Порог низкого боезапаса, при котором инициируется перезарядка")] public int reloadOnLowAmmoThreshold = 0;
+        [Tooltip("Интервал проверки боезапаса (сек)")] public float reloadCheckInterval = 0.2f;
+        private float _reloadCheckTimer;
+
         private IWeapon _weapon;
         
         /// <summary>Текущее оружие AI</summary>
@@ -31,6 +37,24 @@ namespace Black_Orbit.Scripts.AI.Runtime
             if (autoInitialize && weaponData != null)
             {
                 InitializeWeapon();
+            }
+        }
+
+        void Update()
+        {
+            if (!autoReload || _weapon == null) return;
+            _reloadCheckTimer -= Time.deltaTime;
+            if (_reloadCheckTimer > 0f) return;
+            _reloadCheckTimer = reloadCheckInterval;
+
+            if (_weapon.IsReloading) return;
+
+            if (_weapon is IWeaponAmmoInfo ammoInfo)
+            {
+                if (ammoInfo.CurrentAmmo <= reloadOnLowAmmoThreshold)
+                {
+                    _weapon.Reload();
+                }
             }
         }
 
@@ -74,10 +98,21 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         public void TryFire()
         {
-            if (_weapon != null && !_weapon.IsReloading)
+            if (_weapon == null) return;
+            if (_weapon.IsReloading) return;
+
+            // Если магазин пуст/низкий боезапас — перезаряжаем
+            if (_weapon is IWeaponAmmoInfo ammoInfo)
             {
-                _weapon.TryFire();
+                if (ammoInfo.CurrentAmmo <= 0)
+                {
+                    if (autoReload)
+                        _weapon.Reload();
+                    return;
+                }
             }
+
+            _weapon.TryFire();
         }
 
         /// <summary>
@@ -86,6 +121,14 @@ namespace Black_Orbit.Scripts.AI.Runtime
         public void Reload()
         {
             _weapon?.Reload();
+        }
+
+        /// <summary>
+        /// Отпускает спуск (для автоматического/заряжаемого оружия)
+        /// </summary>
+        public void ReleaseTrigger()
+        {
+            _weapon?.ReleaseTrigger();
         }
 
         /// <summary>

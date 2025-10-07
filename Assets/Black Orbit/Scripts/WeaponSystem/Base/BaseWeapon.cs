@@ -1,4 +1,4 @@
-﻿using Black_Orbit.Scripts.WeaponSystem.Runtime;
+using Black_Orbit.Scripts.WeaponSystem.Runtime;
 using Black_Orbit.Scripts.WeaponSystem.ScriptableObjects;
 
 namespace Black_Orbit.Scripts.WeaponSystem.Base
@@ -7,7 +7,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Base
     using System.Collections;
     using static UnityEngine.Quaternion;
     
-    public abstract class BaseWeapon : MonoBehaviour, IWeapon
+    public abstract class BaseWeapon : MonoBehaviour, IWeapon, IWeaponAmmoInfo
     {
         protected WeaponScriptableObject data;
         protected float lastFireTime;
@@ -17,6 +17,10 @@ namespace Black_Orbit.Scripts.WeaponSystem.Base
         private Transform muzzle;
         
         public bool IsReloading => isReloading;
+
+        // IWeaponAmmoInfo
+        public int CurrentAmmo => currentAmmo;
+        public int MagazineSize => data != null ? data.magazineSize : -1;
         
         public virtual void Initialize(WeaponScriptableObject weaponData, Transform muzzlePoint)
         {

@@ -10,6 +10,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
     [CreateAssetMenu(menuName = "AI/Actions/RangedAttack", fileName = "RangedAttack")]
     public class RangedAttackAction : UtilityAction
     {
+        public override ActionChannel Channel => ActionChannel.Combat;
         [Header("Параметры дальней атаки")]
         [Tooltip("Предпочтительная дистанция для стрельбы (метры)")]
         public float preferredRange = 12f;
@@ -20,7 +21,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
         [Tooltip("Кулдаун между выстрелами (секунды)")]
         public float fireCooldown = 0.6f;
         
-        private float _cooldown;
+        private float _cooldown; // не используем для авто-огня, пусть ROF контролирует оружие
 
         public override float[] GetInputs(Runtime.AI ai)
         {
@@ -40,55 +41,54 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
 
         public override void Execute(Runtime.AI ai)
         {
-            if (ai.Target == null) return;
-            float dist = Vector3.Distance(ai.transform.position, ai.Target.position);
+            // Попробуем получить оружие заранее для отпускания спуска при любых отказах
+            ai.TryGetComponent<AIWeaponHandler>(out var handler);
+            ai.TryGetComponent<WeaponSystem.Base.IWeapon>(out var weaponIface);
 
-            // Поддерживаем оптимальную дистанцию
-            if (dist > preferredRange)
+            if (ai.Target == null || !ai.Target.gameObject.activeInHierarchy)
             {
-                // Слишком далеко — приближаемся
-                ai.MoveTo(ai.Target.position);
+                handler?.ReleaseTrigger();
+                weaponIface?.ReleaseTrigger();
+                return;
             }
-            else if (dist < minRange)
+            // Если у цели есть здоровье и оно на нуле — не стреляем
+            var targetHealth = ai.Target.GetComponent<Black_Orbit.Scripts.Core.Runtime.Health>();
+            if (targetHealth != null && targetHealth.IsDead)
             {
-                // Слишком близко — отступаем
-                Vector3 away = (ai.transform.position - ai.Target.position).normalized;
-                ai.MoveTo(ai.transform.position + away * 2f);
+                handler?.ReleaseTrigger();
+                weaponIface?.ReleaseTrigger();
+                return;
+            }
+            if (!ai.hasLineOfSight)
+            {
+                handler?.ReleaseTrigger();
+                weaponIface?.ReleaseTrigger();
+                return; // не видим цель — не стреляем
+            }
+
+            // Боевой канал: не управляем перемещением, только прицел и стрельба
+            ai.LookAt(ai.Target.position);
+
+            // Проверка дружественного огня (дополнительная защита)
+            if (CheckFriendlyFire(ai))
+            {
+                handler?.ReleaseTrigger();
+                weaponIface?.ReleaseTrigger();
+                return;
+            }
+
+            // Держим "спуск" активным — для авто оружия будет непрерывный огонь, ROF контролирует само оружие
+            if (handler != null)
+            {
+                handler.TryFire();
+            }
+            else if (weaponIface != null)
+            {
+                weaponIface.TryFire();
             }
             else
             {
-                // В оптимальной зоне — стоим и стреляем
-                ai.Stop();
-            }
-
-            ai.LookAt(ai.Target.position);
-
-            // Стрельба по кулдауну
-            _cooldown -= Time.deltaTime;
-            if (ai.hasLineOfSight && _cooldown <= 0f)
-            {
-                // Проверка дружественного огня (дополнительная защита)
-                if (CheckFriendlyFire(ai))
-                {
-                    // Не стреляем, но и не логируем - utility уже должна быть низкой
-                    return;
-                }
-                
-                // Используем AIWeaponHandler для стрельбы
-                if (ai.TryGetComponent<AIWeaponHandler>(out var weaponHandler))
-                {
-                    weaponHandler.TryFire();
-                }
-                else if (ai.TryGetComponent<WeaponSystem.Base.IWeapon>(out var weapon))
-                {
-                    // Fallback: прямое использование IWeapon
-                    weapon.TryFire();
-                }
-                else
-                {
-                    Debug.Log("🔫 Дальняя атака (оружие не найдено)");
-                }
-                _cooldown = fireCooldown;
+                Debug.Log("🔫 Дальняя атака (оружие не найдено)");
             }
         }
         

@@ -10,6 +10,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
     [CreateAssetMenu(menuName = "AI/Actions/Flank", fileName = "Flank")]
     public class FlankAction : UtilityAction
     {
+        public override ActionChannel Channel => ActionChannel.Movement;
         [Header("Параметры флангового манёвра")]
         [Tooltip("Дистанция бокового смещения от игрока (метры)")]
         public float flankDistance = 5f;

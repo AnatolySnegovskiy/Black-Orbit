@@ -1,3 +1,4 @@
+using Black_Orbit.Scripts.Core.Runtime;
 using Black_Orbit.Scripts.Faction.Runtime;
 using Unity.Mathematics;
 using UnityEngine;
@@ -8,6 +9,7 @@ namespace Black_Orbit.Scripts.FPS
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(PlayerInput))]
     [RequireComponent(typeof(FactionMember))]
+    [RequireComponent(typeof(Health))]
     public class FirstPersonController : MonoBehaviour
     {
         [Header("Movement")]
@@ -56,6 +58,8 @@ namespace Black_Orbit.Scripts.FPS
         private InputActionMap _currentMap;
         CharacterAnimator _animator;
         private bool _isRunning;
+        private Health _health;
+        private bool _isAlive = true;
 
         // ---- Action handlers ----
 
@@ -81,6 +85,7 @@ namespace Black_Orbit.Scripts.FPS
             _currentMap = _input.currentActionMap;
             _rb = GetComponent<Rigidbody>();
             _col = GetComponent<CapsuleCollider>();
+            _health = GetComponent<Health>();
             _originalHeight = _col.height;
             Cursor.lockState = CursorLockMode.Locked;
         }
@@ -101,6 +106,16 @@ namespace Black_Orbit.Scripts.FPS
 
             _currentMap["Run"].performed += OnRunStarted;
             _currentMap["Run"].canceled += OnRunCanceled;
+
+            if (_health != null)
+            {
+                _health.OnDied += OnDied;
+                _health.OnRevived += OnRevived;
+                // Sync alive state with current health
+                _isAlive = !_health.IsDead;
+                _input.enabled = _isAlive;
+                Cursor.lockState = _isAlive ? CursorLockMode.Locked : CursorLockMode.None;
+            }
         }
 
         void OnDisable()
@@ -120,16 +135,24 @@ namespace Black_Orbit.Scripts.FPS
             _currentMap["Run"].canceled -= OnRunCanceled;
             
             _currentMap.Disable();
+
+            if (_health != null)
+            {
+                _health.OnDied -= OnDied;
+                _health.OnRevived -= OnRevived;
+            }
         }
 
         void FixedUpdate()
         {
+            if (!_isAlive) return;
             Move();
             CheckGrounded();
         }
 
         void LateUpdate()
         {
+            if (!_isAlive) return;
             Look();
         }
 
@@ -207,6 +230,22 @@ namespace Black_Orbit.Scripts.FPS
             localCamera.localRotation = Quaternion.Euler(_lookX + _jumpKickOffset, 0f, _currentTilt);
 
             _rb.MoveRotation(Quaternion.Euler(0, _lookY, 0));
+        }
+
+        // === Health Event Handlers ===
+        private void OnDied()
+        {
+            _isAlive = false;
+            if (_input != null) _input.enabled = false;
+            if (_rb != null) _rb.linearVelocity = Vector3.zero;
+            Cursor.lockState = CursorLockMode.None;
+        }
+
+        private void OnRevived()
+        {
+            _isAlive = true;
+            if (_input != null) _input.enabled = true;
+            Cursor.lockState = CursorLockMode.Locked;
         }
     }
 }

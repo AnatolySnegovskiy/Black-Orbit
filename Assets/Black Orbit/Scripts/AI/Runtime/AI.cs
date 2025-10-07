@@ -1,4 +1,10 @@
 using Black_Orbit.Scripts.AI.ScriptableObjects.Actions;
+using Black_Orbit.Scripts.AI.Runtime.Core;
+using Black_Orbit.Scripts.AI.Runtime.Movement;
+using Black_Orbit.Scripts.AI.Runtime.Perception;
+using Black_Orbit.Scripts.AI.Runtime.Targeting;
+using Black_Orbit.Scripts.AI.Runtime.Actions;
+using Black_Orbit.Scripts.Core.Runtime;
 using Black_Orbit.Scripts.Faction.ScriptableObjects;
 using Black_Orbit.Scripts.Faction.Runtime;
 using System.Collections.Generic;
@@ -16,11 +22,19 @@ namespace Black_Orbit.Scripts.AI.Runtime
     [RequireComponent(typeof(NavMeshAgent))]
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(FactionMember))]
+    [RequireComponent(typeof(Health))]
     public class AI : MonoBehaviour
     {
+        private static readonly System.Collections.Generic.List<AI> s_all = new System.Collections.Generic.List<AI>();
+        // === Modularized services ===
+        private AIBlackboard _bb;
+        private AIMovement _movement;
+        private AIPerception _perception;
+        private AITargeting _targeting;
+        private AIActionSelector _selector;
         // Фракция теперь берётся из FactionMember компонента
         private FactionMember _factionMember;
-        
+
         /// <summary>Фракция этого AI (из FactionMember)</summary>
         public FactionData faction
         {
@@ -34,16 +48,88 @@ namespace Black_Orbit.Scripts.AI.Runtime
             }
         }
 
+        private void OnHealthDamaged(int amount, int newHealth)
+        {
+            if (amount <= 0) return;
+            // Перевод части урона в подавление (коэф. под тюнинг)
+            int maxHp = healthComponent != null ? healthComponent.MaxHealth : 100;
+            float suppression = Mathf.Clamp01(amount / (float)Mathf.Max(1, maxHp)) * 0.8f;
+            suppression = Mathf.Max(0.05f, suppression);
+            AddSuppression(suppression);
+            if (Squad != null)
+            {
+                Squad.ReportSuppression(this, suppression * 0.5f);
+            }
+        }
+
+        /// <summary>
+        /// Сообщить этому AI о шуме (позиция и уровень 0..1)
+        /// </summary>
+        public void HearNoise(Vector3 position, float level)
+        {
+            if (_bb == null) return;
+            _bb.HeardNoisePos = position;
+            _bb.NoiseLevel = Mathf.Clamp01(Mathf.Max(level, _bb.NoiseLevel * 0.8f));
+        }
+
+        /// <summary>
+        /// Глобальная рассылка шума всем AI (с затуханием по расстоянию)
+        /// </summary>
+        public static void EmitNoise(Vector3 position, float level, float maxRadius = 25f)
+        {
+            if (s_all == null || s_all.Count == 0) return;
+            foreach (var ai in s_all)
+            {
+                if (ai == null || !ai.gameObject.activeInHierarchy) continue;
+                float dist = Vector3.Distance(ai.transform.position, position);
+                if (dist > maxRadius) continue;
+                float att = Mathf.Clamp01(1f - dist / Mathf.Max(0.01f, maxRadius));
+                ai.HearNoise(position, Mathf.Clamp01(level * att));
+            }
+        }
+
+        /// <summary>
+        /// Возвращает true, если можно вести огонь: есть цель, она активна, жива и есть LOS
+        /// </summary>
+        public bool IsEngagementAllowed()
+        {
+            if (Target == null || !Target.gameObject.activeInHierarchy) return false;
+            var h = Target.GetComponent<Health>();
+            if (h != null && h.IsDead) return false;
+            return hasLineOfSight;
+        }
+
         [Header("Ссылки")]
         [SerializeField]
-        [Tooltip("Текущая цель для AI (автоматически находится по фракциям или назначается вручную)")]
-        private Transform target;
+        [Tooltip("Цель для атаки/прицеливания")] private Transform attackTarget;
         
-        /// <summary>Публичный доступ к текущей цели</summary>
+        /// <summary>Цель для атаки/прицеливания</summary>
+        public Transform AttackTarget
+        {
+            get => attackTarget;
+            set
+            {
+                attackTarget = value;
+                if (_bb != null) _bb.AttackTarget = attackTarget;
+            }
+        }
+
+        /// <summary>Навигационная цель (точка), куда движемся при отсутствии LOS/для поиска</summary>
+        public Vector3 NavTargetPos
+        {
+            get => _bb != null ? _bb.NavTargetPos : lastSeenTargetPos;
+            set
+            {
+                if (_bb != null) _bb.NavTargetPos = value;
+                lastSeenTargetPos = value;
+            }
+        }
+
+        /// <summary>Алиас для обратной совместимости: Target == AttackTarget</summary>
         public Transform Target
         {
-            get => target;
-            set => target = value;
+            get => AttackTarget;
+            set => AttackTarget = value;
         }
         
         [SerializeField]
@@ -139,14 +225,20 @@ namespace Black_Orbit.Scripts.AI.Runtime
 
         [Header("Здоровье")]
         [SerializeField]
-        [Tooltip("Текущее здоровье (0-100)")]
-        [Range(0f, 100f)] private float health = 100f;
+        [Tooltip("Компонент здоровья (Core)")]
+        private Health healthComponent;
         
-        /// <summary>Публичный доступ к здоровью</summary>
+        /// <summary>Публичный доступ к здоровью (значение текущего HP)</summary>
         public float Health
         {
-            get => health;
-            set => health = Mathf.Clamp(value, 0f, 100f);
+            get => healthComponent != null ? healthComponent.CurrentHealth : 0f;
+            set
+            {
+                if (healthComponent != null)
+                {
+                    healthComponent.SetHealth(Mathf.RoundToInt(value));
+                }
+            }
         }
 
         [Header("Патрулирование")]
@@ -171,9 +263,36 @@ namespace Black_Orbit.Scripts.AI.Runtime
         
         /// <summary>Публичный доступ к текущему действию</summary>
         public UtilityAction CurrentAction => _currentAction;
+
+        /// <summary>Текущее выбранное действие по каналу Movement (для отладки/гизмо)</summary>
+        public UtilityAction CurrentMovementAction => _selector != null ? _selector.CurrentMovement : null;
+
+        /// <summary>Текущее выбранное действие по каналу Combat (для отладки/гизмо)</summary>
+        public UtilityAction CurrentCombatAction => _selector != null ? _selector.CurrentCombat : null;
         
         /// <summary>Устанавливает действия (для Editor)</summary>
         public void SetActions(UtilityAction[] newActions) => actions = newActions;
+
+        [Header("Debug & Gizmos")]
+        [SerializeField] private AISettings settings;
+        [SerializeField] public bool showGizmosVision = true;
+        [SerializeField] public bool showGizmosDetection = true;
+        [SerializeField] public bool showGizmosAttackRanges = true;
+        [SerializeField] public bool showGizmosLastSeen = true;
+        [SerializeField] public bool showGizmosNavTarget = true;
+        [SerializeField] public bool showGizmosInfoLabel = true;
+
+        [Header("Suppression")]
+        [Tooltip("Скорость затухания подавления (в секунду)")]
+        [SerializeField] private float suppressionDecayRate = 0.25f;
+        /// <summary>Текущий уровень подавления (0..1)</summary>
+        public float SuppressionLevel => _bb != null ? _bb.SuppressionLevel : 0f;
+        /// <summary>Добавляет подавление (0..1), кумулятивно</summary>
+        public void AddSuppression(float amount)
+        {
+            if (_bb == null) return;
+            _bb.SuppressionLevel = Mathf.Clamp01(_bb.SuppressionLevel + Mathf.Max(0f, amount));
+        }
         
         /// <summary>Инициализация параметров (для Editor/Prefab Generator)</summary>
         public void InitializeParameters(
@@ -188,7 +307,17 @@ namespace Black_Orbit.Scripts.AI.Runtime
             rangedAttackRange = rangedRange;
             visionAngle = visAngle;
             visionRange = visRange;
-            health = hp;
+            if (healthComponent == null) healthComponent = GetComponent<Health>();
+            if (healthComponent != null)
+            {
+                healthComponent.OnDamaged -= OnHealthDamaged; // гарантируем единственную подписку
+                healthComponent.OnDamaged += OnHealthDamaged;
+            }
+            if (healthComponent != null)
+            {
+                // Не меняем MaxHealth здесь, только выставляем текущее
+                healthComponent.SetHealth(Mathf.RoundToInt(hp));
+            }
             targetSearchInterval = targetSearchInt;
         }
 
@@ -205,7 +334,7 @@ namespace Black_Orbit.Scripts.AI.Runtime
         }
 
         /// <summary>Нормализованное здоровье (0..1)</summary>
-        public float HealthNormalized => health / 100f;
+        public float HealthNormalized => healthComponent != null ? healthComponent.Normalized : 0f;
 
         // === Чёрная доска (Blackboard) — данные для принятия решений ===
         [HideInInspector] public Vector3 lastSeenTargetPos = Vector3.positiveInfinity; // Инициализируем невалидным значением
@@ -218,14 +347,13 @@ namespace Black_Orbit.Scripts.AI.Runtime
         private float _orderTimer;
         
         private float _targetSearchTimer;
-        private static Dictionary<FactionData, List<AI>> _factionMembers = new Dictionary<FactionData, List<AI>>();
 
         // === Обратная совместимость ===
-        /// <summary>Алиас для target (для совместимости со старыми экшенами)</summary>
+        /// <summary>Алиас для AttackTarget (для совместимости со старыми экшенами)</summary>
         public Transform Player
         {
-            get => target;
-            set => target = value;
+            get => AttackTarget;
+            set => AttackTarget = value;
         }
         
         /// <summary>Алиас для lastSeenTargetPos (для совместимости)</summary>
@@ -236,7 +364,6 @@ namespace Black_Orbit.Scripts.AI.Runtime
         }
 
         /// <summary>Алиас для rangedAttackRange (для совместимости со старыми экшенами)</summary>
-        [System.Obsolete("Используйте meleeAttackRange или rangedAttackRange вместо attackRange")]
         public float attackRange
         {
             get => rangedAttackRange;
@@ -247,25 +374,20 @@ namespace Black_Orbit.Scripts.AI.Runtime
         {
             // Получаем ссылку на FactionMember
             _factionMember = GetComponent<FactionMember>();
-            
-            // Регистрируем себя в списке фракции
-            if (faction != null)
+            if (!s_all.Contains(this)) s_all.Add(this);
+            // Подписка на урон для подавления
+            if (healthComponent == null) healthComponent = GetComponent<Health>();
+            if (healthComponent != null)
             {
-                if (!_factionMembers.ContainsKey(faction))
-                {
-                    _factionMembers[faction] = new List<AI>();
-                }
-                _factionMembers[faction].Add(this);
+                healthComponent.OnDamaged -= OnHealthDamaged; // на всякий случай
+                healthComponent.OnDamaged += OnHealthDamaged;
             }
         }
 
-        void OnDisable()
-        {
-            // Удаляем себя из списка фракции
-            if (faction != null && _factionMembers.ContainsKey(faction))
-            {
-                _factionMembers[faction].Remove(this);
-            }
+        void OnDisable() 
+        { 
+            s_all.Remove(this);
+            if (healthComponent != null) healthComponent.OnDamaged -= OnHealthDamaged;
         }
 
         void Start()
@@ -277,14 +399,61 @@ namespace Black_Orbit.Scripts.AI.Runtime
                 agent.updateRotation = false; // Вращение контролируем вручную через LookAt
                 agent.updateUpAxis = false;
             }
+
+            if (healthComponent == null) healthComponent = GetComponent<Health>();
+
+            // Initialize services
+            if (_bb == null) _bb = new AIBlackboard();
+            _bb.AttackTarget = attackTarget;
+            _bb.NavTargetPos = lastSeenTargetPos;
+            _bb.HasLineOfSight = hasLineOfSight;
+            _bb.LastSeenTargetPos = lastSeenTargetPos;
+            _bb.TimeSinceLastSeen = timeSinceLastSeen;
+
+            if (_movement == null) _movement = new AIMovement(this, agent, rb);
+            if (_perception == null) _perception = new AIPerception();
+            if (_targeting == null) _targeting = new AITargeting();
+            if (_selector == null) _selector = new AIActionSelector();
+
+            // Apply settings (gizmo defaults) if provided
+            if (settings != null)
+            {
+                showGizmosVision = settings.showGizmosVision;
+                showGizmosDetection = settings.showGizmosDetection;
+                showGizmosAttackRanges = settings.showGizmosAttackRanges;
+                showGizmosLastSeen = settings.showGizmosLastSeen;
+                showGizmosNavTarget = settings.showGizmosNavTarget;
+                showGizmosInfoLabel = settings.showGizmosInfoLabel;
+            }
         }
 
         void Update()
         {
-            UpdateTargetSearch();
             UpdatePerception();
+            UpdateTargetSearch();
             UpdateRotation();
             SelectAndExecuteAction();
+
+            // Затухание подавления
+            if (_bb != null && _bb.SuppressionLevel > 0f)
+            {
+                _bb.SuppressionLevel = Mathf.Max(0f, _bb.SuppressionLevel - suppressionDecayRate * Time.deltaTime);
+            }
+
+            // Затухание шума и авто-навигация на шум при отсутствии цели/LOS
+            if (_bb != null && _bb.NoiseLevel > 0f)
+            {
+                _bb.NoiseLevel = Mathf.Max(0f, _bb.NoiseLevel - 0.5f * Time.deltaTime);
+                if (_bb.NoiseLevel <= 0f) _bb.HeardNoisePos = Vector3.positiveInfinity;
+                else
+                {
+                    // Если нет явной цели, используем шум как навточку
+                    if (AttackTarget == null && !float.IsPositiveInfinity(_bb.HeardNoisePos.x))
+                    {
+                        NavTargetPos = _bb.HeardNoisePos;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -292,17 +461,31 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         void UpdateRotation()
         {
-            if (target == null) return;
-
-            // Направление к цели
-            Vector3 direction = (target.position - transform.position).normalized;
-            direction.y = 0; // Игнорируем вертикальную составляющую
-
-            if (direction.sqrMagnitude > 0.01f)
+            if (_movement != null)
             {
-                // Плавный поворот к цели
-                Quaternion targetRotation = Quaternion.LookRotation(direction);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+                _movement.UpdateRotation(AttackTarget);
+            }
+            else
+            {
+                if (AttackTarget == null)
+                {
+                    // Поворачиваемся к навигационной цели, если она валидна
+                    if (float.IsPositiveInfinity(NavTargetPos.x)) return;
+                    Vector3 dirNav = (NavTargetPos - transform.position); dirNav.y = 0;
+                    if (dirNav.sqrMagnitude <= 0.01f) return;
+                    dirNav.Normalize();
+                    Quaternion rotNav = Quaternion.LookRotation(dirNav);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, rotNav, Time.deltaTime * rotationSpeed);
+                    return;
+                }
+                Vector3 direction = (AttackTarget.position - transform.position);
+                direction.y = 0;
+                if (direction.sqrMagnitude > 0.01f)
+                {
+                    direction.Normalize();
+                    Quaternion targetRotation = Quaternion.LookRotation(direction);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+                }
             }
         }
 
@@ -311,68 +494,22 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         void UpdateTargetSearch()
         {
-            _targetSearchTimer -= Time.deltaTime;
-            if (_targetSearchTimer <= 0f)
+            if (_targeting != null && _bb != null)
             {
-                _targetSearchTimer = targetSearchInterval;
-                
-                // Если текущая цель мертва или null, ищем новую
-                if (target == null || !target.gameObject.activeInHierarchy)
+                _targeting.Update(this, _bb);
+            }
+            else
+            {
+                _targetSearchTimer -= Time.deltaTime;
+                if (_targetSearchTimer <= 0f)
                 {
-                    target = FindNearestHostile();
+                    _targetSearchTimer = targetSearchInterval;
+                    // Fallback path without targeting service: keep current target or wait until service is available
                 }
             }
         }
 
-        /// <summary>
-        /// Находит ближайшего врага из враждебных фракций
-        /// Ищет как AI, так и FactionMember компоненты
-        /// </summary>
-        Transform FindNearestHostile()
-        {
-            Transform nearest = null;
-            float nearestDist = float.MaxValue;
-
-            if (faction == null) return null;
-            
-            // Получаем враждебные фракции
-            var hostileFactions = FactionManager.Instance.GetHostileFactions(faction);
-            
-            // Поиск среди AI
-            foreach (var hostileFaction in hostileFactions)
-            {
-                if (!_factionMembers.ContainsKey(hostileFaction)) continue;
-
-                foreach (var hostile in _factionMembers[hostileFaction])
-                {
-                    if (hostile == null || !hostile.gameObject.activeInHierarchy) continue;
-                    
-                    float dist = Vector3.Distance(transform.position, hostile.transform.position);
-                    if (dist < nearestDist && dist <= detectionRange)
-                    {
-                        nearestDist = dist;
-                        nearest = hostile.transform;
-                    }
-                }
-            }
-            
-            // Поиск среди FactionMember (игроки, NPC без AI)
-            var factionMembers = FindObjectsOfType<FactionMember>();
-            foreach (var member in factionMembers)
-            {
-                if (member == null || !member.gameObject.activeInHierarchy) continue;
-                if (member.faction == null || !faction.IsHostile(member.faction)) continue;
-                
-                float dist = Vector3.Distance(transform.position, member.transform.position);
-                if (dist < nearestDist && dist <= detectionRange)
-                {
-                    nearestDist = dist;
-                    nearest = member.transform;
-                }
-            }
-
-            return nearest;
-        }
+        // FindNearestHostile() перенесён в AITargeting
 
         /// <summary>
         /// Проверяет, является ли указанный AI враждебным
@@ -472,39 +609,23 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         public List<AI> GetAlliesInRange(float range)
         {
+            // Используем внутренний список агентов, чтобы избежать FindObjectsOfType и аллокаций.
             List<AI> allies = new List<AI>();
-            if (faction == null) return allies;
-            
-            var alliedFactions = FactionManager.Instance.GetAlliedFactions(faction);
-            
-            // Проверяем свою фракцию
-            if (_factionMembers.ContainsKey(faction))
+            if (faction == null || s_all == null || s_all.Count == 0) return allies;
+            Vector3 selfPos = transform.position;
+            float rangeSqr = range * range;
+            for (int i = 0; i < s_all.Count; i++)
             {
-                foreach (var ally in _factionMembers[faction])
+                var other = s_all[i];
+                if (other == null || other == this || other.faction == null) continue;
+                if (!other.gameObject.activeInHierarchy) continue;
+                if (!faction.IsAllied(other.faction)) continue;
+                Vector3 to = other.transform.position - selfPos; to.y = 0f;
+                if (to.sqrMagnitude <= rangeSqr)
                 {
-                    if (ally == this || ally == null) continue;
-                    if (Vector3.Distance(transform.position, ally.transform.position) <= range)
-                    {
-                        allies.Add(ally);
-                    }
+                    allies.Add(other);
                 }
             }
-            
-            // Проверяем союзные фракции
-            foreach (var alliedFaction in alliedFactions)
-            {
-                if (!_factionMembers.ContainsKey(alliedFaction)) continue;
-                
-                foreach (var ally in _factionMembers[alliedFaction])
-                {
-                    if (ally == null) continue;
-                    if (Vector3.Distance(transform.position, ally.transform.position) <= range)
-                    {
-                        allies.Add(ally);
-                    }
-                }
-            }
-            
             return allies;
         }
 
@@ -513,51 +634,35 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         void SelectAndExecuteAction()
         {
-            // Проверяем, есть ли приказ от squad
-            if (_orderedAction != null)
+            if (_selector != null && _bb != null)
             {
-                _orderTimer -= Time.deltaTime;
-                if (_orderTimer > 0f)
+                _selector.SelectAndExecute(this, _bb, actions);
+                // Синхронизируем поле только для обратной совместимости/отладки
+                _currentAction = _selector.CurrentAction;
+
+                // Централизованный контроль спуска: если нет боевого экшена или нельзя вести огонь — отпускаем спуск
+                bool shouldHoldTrigger = _selector.CurrentCombat != null && IsEngagementAllowed();
+                if (!shouldHoldTrigger)
                 {
-                    // Выполняем приказанное действие
-                    if (_currentAction != _orderedAction)
-                    {
-                        _currentAction = _orderedAction;
-                        Debug.Log($"🎖️ [{faction}] Выполняю приказ: {_currentAction.name}");
-                    }
-                    _currentAction.Execute(this);
-                    return;
-                }
-                else
-                {
-                    // Приказ истёк, возвращаемся к обычному поведению
-                    _orderedAction = null;
+                    if (TryGetComponent<AIWeaponHandler>(out var handler)) handler.ReleaseTrigger();
+                    else if (TryGetComponent<WeaponSystem.Base.IWeapon>(out var weapon)) weapon.ReleaseTrigger();
                 }
             }
-
-            float bestScore = -1f;
-            UtilityAction bestAction = null;
-
-            // Оцениваем все доступные действия
-            foreach (var action in actions)
+            else
             {
-                float score = action.Evaluate(this);
-                if (score > bestScore)
+                // Fallback: прежняя логика выбора (упрощённо)
+                float bestScore = -1f;
+                UtilityAction bestAction = null;
+                foreach (var action in actions)
                 {
-                    bestScore = score;
-                    bestAction = action;
+                    float score = action.Evaluate(this);
+                    if (score > bestScore) { bestScore = score; bestAction = action; }
                 }
-            }
-
-            // Выполняем лучшее действие
-            if (bestAction != null)
-            {
-                if (_currentAction != bestAction)
+                if (bestAction != null)
                 {
                     _currentAction = bestAction;
-                    Debug.Log($"🤖 [{faction}] Выбрано действие: {_currentAction.name} (Score={bestScore:F2})");
+                    _currentAction.Execute(this);
                 }
-                _currentAction.Execute(this);
             }
         }
 
@@ -568,17 +673,24 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// <param name="duration">Длительность приказа в секундах (по умолчанию 3 сек)</param>
         public void OrderAction(string actionName, float duration = 3f)
         {
-            var action = System.Array.Find(actions, a => a.name.Contains(actionName));
-            if (action != null)
+            if (_selector != null)
             {
-                _orderedAction = action;
-                _orderDuration = duration;
-                _orderTimer = duration;
-                Debug.Log($"📋 [{faction}] Получен приказ: {actionName} на {duration} сек");
+                _selector.OrderAction(this, actionName, duration, actions);
             }
             else
             {
-                Debug.LogWarning($"[AI] Действие '{actionName}' не найдено в списке actions!");
+                var action = System.Array.Find(actions, a => a.name.Contains(actionName));
+                if (action != null)
+                {
+                    _orderedAction = action;
+                    _orderDuration = duration;
+                    _orderTimer = duration;
+                    Debug.Log($"📋 [{faction}] Получен приказ: {actionName} на {duration} сек");
+                }
+                else
+                {
+                    Debug.LogWarning($"[AI] Действие '{actionName}' не найдено в списке actions!");
+                }
             }
         }
 
@@ -587,6 +699,7 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         public void CancelOrder()
         {
+            if (_selector != null) { _selector.CancelOrder(); return; }
             _orderedAction = null;
             _orderTimer = 0f;
         }
@@ -594,21 +707,16 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// <summary>
         /// Проверяет, выполняет ли AI приказ в данный момент
         /// </summary>
-        public bool IsFollowingOrder => _orderedAction != null && _orderTimer > 0f;
+        public bool IsFollowingOrder => _selector != null ? _selector.IsFollowingOrder : (_orderedAction != null && _orderTimer > 0f);
 
         /// <summary>
         /// Останавливает движение
         /// </summary>
         public void Stop()
         {
-            if (agent != null)
-            {
-                agent.ResetPath();
-            }
-            if (rb != null)
-            {
-                rb.linearVelocity = Vector3.zero;
-            }
+            if (_movement != null) { _movement.Stop(); return; }
+            if (agent != null) agent.ResetPath();
+            if (rb != null) rb.linearVelocity = Vector3.zero;
         }
 
         /// <summary>
@@ -616,14 +724,17 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         public void MoveTo(Vector3 targetPos)
         {
-            if (agent != null && agent.isOnNavMesh)
-            {
-                agent.SetDestination(targetPos);
-            }
+            if (_movement != null) { _movement.MoveTo(targetPos); return; }
+            if (agent != null && agent.isOnNavMesh) agent.SetDestination(targetPos);
             else if (rb != null)
             {
-                Vector3 dir = (targetPos - transform.position).normalized;
-                rb.MovePosition(rb.position + dir * (moveSpeed * Time.deltaTime));
+                Vector3 dir = (targetPos - transform.position);
+                dir.y = 0f;
+                if (dir.sqrMagnitude > 0.0001f)
+                {
+                    dir = dir.normalized;
+                    rb.MovePosition(rb.position + dir * (moveSpeed * Time.deltaTime));
+                }
             }
         }
 
@@ -632,11 +743,15 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         public bool IsAtDestination(float tolerance = 0.5f)
         {
+            if (_movement != null)
+            {
+                return _movement.IsAtDestination(NavTargetPos, tolerance);
+            }
             if (agent != null && agent.hasPath)
             {
                 return !float.IsPositiveInfinity(agent.remainingDistance) && agent.remainingDistance <= tolerance;
             }
-            return Vector3.Distance(transform.position, lastSeenTargetPos) <= tolerance;
+            return Vector3.Distance(transform.position, NavTargetPos) <= tolerance;
         }
 
         /// <summary>
@@ -644,13 +759,11 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         public void LookAt(Vector3 point, float turnSpeed = 10f)
         {
+            if (_movement != null) { _movement.LookAt(point, turnSpeed); return; }
             Vector3 dir = (point - transform.position);
             dir.y = 0f;
-            
-            // Проверяем что вектор не нулевой
             if (dir.sqrMagnitude > 0.001f)
             {
-                // Нормализуем перед передачей в LookRotation
                 dir.Normalize();
                 Quaternion targetRot = Quaternion.LookRotation(dir);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * turnSpeed);
@@ -662,38 +775,44 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         void UpdatePerception()
         {
-            hasLineOfSight = false;
-            if (target == null) { timeSinceLastSeen += Time.deltaTime; return; }
-
-            Vector3 toTarget = target.position - transform.position;
-            float dist = toTarget.magnitude;
-            
-            // Проверяем дистанцию
-            if (dist <= Mathf.Max(visionRange, detectionRange))
+            // Delegate to perception service updating blackboard
+            if (_perception != null && _bb != null)
             {
-                Vector3 dir = toTarget.normalized;
-                float angle = Vector3.Angle(transform.forward, dir);
-                
-                // Проверяем угол обзора
-                if (angle <= visionAngle * 0.5f)
-                {
-                    // Проверяем препятствия через Raycast
-                    if (!Physics.Raycast(transform.position + Vector3.up * 1.6f, dir, out RaycastHit _, dist, obstacleMask))
-                    {
-                        hasLineOfSight = true;
-                    }
-                }
-            }
-
-            // Обновляем чёрную доску
-            if (hasLineOfSight)
-            {
-                lastSeenTargetPos = target.position;
-                timeSinceLastSeen = 0f;
+                _perception.Update(this, _bb);
+                // Sync legacy fields for backward compatibility
+                hasLineOfSight = _bb.HasLineOfSight;
+                lastSeenTargetPos = _bb.LastSeenTargetPos;
+                timeSinceLastSeen = _bb.TimeSinceLastSeen;
             }
             else
             {
-                timeSinceLastSeen += Time.deltaTime;
+                // Fallback to legacy behavior if service is missing
+                hasLineOfSight = false;
+                if (AttackTarget == null) { timeSinceLastSeen += Time.deltaTime; return; }
+
+                Vector3 toTarget = AttackTarget.position - transform.position;
+                float dist = toTarget.magnitude;
+                if (dist <= Mathf.Max(visionRange, detectionRange))
+                {
+                    Vector3 dir = toTarget.normalized;
+                    float angle = Vector3.Angle(transform.forward, dir);
+                    if (angle <= visionAngle * 0.5f)
+                    {
+                        if (!Physics.Raycast(transform.position + Vector3.up * 1.6f, dir, out RaycastHit _, dist, obstacleMask))
+                        {
+                            hasLineOfSight = true;
+                        }
+                    }
+                }
+                if (hasLineOfSight)
+                {
+                    lastSeenTargetPos = AttackTarget.position;
+                    timeSinceLastSeen = 0f;
+                }
+                else
+                {
+                    timeSinceLastSeen += Time.deltaTime;
+                }
             }
         }
 
@@ -702,99 +821,7 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         void OnDrawGizmosSelected()
         {
-            // Цвет зависит от состояния
-            Color visionColor = hasLineOfSight ? Color.red : Color.yellow;
-            visionColor.a = 0.3f;
-
-            // === КОНУС ЗРЕНИЯ ===
-            Vector3 origin = transform.position + Vector3.up * 1.6f; // Уровень глаз
-            
-            // Рисуем дугу конуса зрения
-            float halfAngle = visionAngle * 0.5f;
-            int segments = 20;
-            Vector3 prevPoint = origin;
-            
-            for (int i = 0; i <= segments; i++)
-            {
-                float angle = -halfAngle + (visionAngle * i / segments);
-                Vector3 direction = Quaternion.Euler(0, angle, 0) * transform.forward;
-                Vector3 point = origin + direction * visionRange;
-                
-                if (i > 0)
-                {
-                    // Рисуем треугольник конуса
-                    Gizmos.color = visionColor;
-                    Gizmos.DrawLine(origin, point);
-                    Gizmos.DrawLine(prevPoint, point);
-                }
-                
-                prevPoint = point;
-            }
-            
-            // Линия от origin к первой точке (замыкаем конус)
-            Vector3 leftBoundary = Quaternion.Euler(0, -halfAngle, 0) * transform.forward * visionRange;
-            Gizmos.DrawLine(origin, origin + leftBoundary);
-            
-            // === ГРАНИЦЫ КОНУСА (жирные линии) ===
-            Gizmos.color = hasLineOfSight ? Color.red : Color.yellow;
-            Vector3 leftDir = Quaternion.Euler(0, -halfAngle, 0) * transform.forward;
-            Vector3 rightDir = Quaternion.Euler(0, halfAngle, 0) * transform.forward;
-            
-            Debug.DrawRay(origin, leftDir * visionRange, Gizmos.color);
-            Debug.DrawRay(origin, rightDir * visionRange, Gizmos.color);
-            
-            // === ДАЛЬНОСТЬ ОБНАРУЖЕНИЯ (окружность) ===
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawWireSphere(transform.position, detectionRange);
-            
-            // === ДАЛЬНОСТЬ БЛИЖНЕЙ АТАКИ (окружность) ===
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(transform.position, meleeAttackRange);
-            
-            // === ДАЛЬНОСТЬ ДАЛЬНЕЙ АТАКИ (окружность) ===
-            Gizmos.color = new Color(1f, 0.5f, 0f); // Оранжевый
-            Gizmos.DrawWireSphere(transform.position, rangedAttackRange);
-            
-            // === ПОСЛЕДНЯЯ ИЗВЕСТНАЯ ПОЗИЦИЯ ЦЕЛИ ===
-            if (lastSeenTargetPos != Vector3.positiveInfinity && lastSeenTargetPos != Vector3.zero)
-            {
-                Gizmos.color = Color.magenta;
-                Gizmos.DrawWireSphere(lastSeenTargetPos, 0.5f);
-                Gizmos.DrawLine(transform.position + Vector3.up, lastSeenTargetPos + Vector3.up);
-            }
-            
-            // === ЛУЧ К ЦЕЛИ (если видим) ===
-            if (hasLineOfSight && target != null)
-            {
-                Gizmos.color = Color.red;
-                Gizmos.DrawLine(origin, target.position + Vector3.up);
-                
-                // Индикатор на цели
-                Gizmos.DrawWireSphere(target.position + Vector3.up, 0.3f);
-            }
-            
-            // === НАПРАВЛЕНИЕ ВЗГЛЯДА ===
-            Gizmos.color = Color.blue;
-            Gizmos.DrawRay(origin, transform.forward * 2f);
-            
-            // === ТЕКСТ С ИНФОРМАЦИЕЙ ===
-            #if UNITY_EDITOR
-            UnityEditor.Handles.Label(
-                transform.position + Vector3.up * 2.5f,
-                $"{(faction != null ? faction.factionName : "No Faction")}\n" +
-                $"HP: {health:F0}\n" +
-                $"LOS: {(hasLineOfSight ? "✓" : "✗")}\n" +
-                $"Time: {timeSinceLastSeen:F1}s\n" +
-                $"Melee: {meleeAttackRange:F0}m | Range: {rangedAttackRange:F0}m\n" +
-                $"Action: {(_currentAction != null ? _currentAction.name : "None")}",
-                new GUIStyle()
-                {
-                    normal = new GUIStyleState() { textColor = hasLineOfSight ? Color.red : Color.white },
-                    fontSize = 10,
-                    fontStyle = FontStyle.Bold
-                }
-            );
-            #endif
+            Debugging.AIGizmosDrawer.Draw(this);
         }
     }
 }

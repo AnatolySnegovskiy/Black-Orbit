@@ -93,6 +93,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  maxTimeSinceSeen: 3
-  fireCooldown: 0.4
-  minRange: 5
+  maxTimeSinceSeen: 6
+  fireCooldown: 0.5
+  minRange: 10

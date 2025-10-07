@@ -9,6 +9,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
     [CreateAssetMenu(menuName = "AI/Actions/SearchLastKnown", fileName = "SearchLastKnown")]
     public class SearchLastKnownAction : UtilityAction
     {
+        public override ActionChannel Channel => ActionChannel.Movement;
         [Header("Параметры поиска")]
         [Tooltip("Радиус достижения последней позиции игрока (метры)")]
         public float tolerance = 0.7f;
@@ -37,10 +38,11 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
             }
 
             // Идём к последней известной позиции
-            ai.MoveTo(ai.lastSeenTargetPos);
-            ai.LookAt(ai.lastSeenTargetPos);
+            var dest = ai.NavTargetPos;
+            ai.MoveTo(dest);
+            ai.LookAt(dest);
 
-            if (Vector3.Distance(ai.transform.position, ai.lastSeenTargetPos) <= tolerance)
+            if (Vector3.Distance(ai.transform.position, dest) <= tolerance)
             {
                 _scanTimer += Time.deltaTime;
                 // Медленно вращаемся, сканируя окружение

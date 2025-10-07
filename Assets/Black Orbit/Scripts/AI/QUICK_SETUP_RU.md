@@ -1,3 +1,23 @@
+### 📤 PeekAndShootAction
+```
+[0] hasTarget
+    Weight: 0.5
+    Curve: Linear
+
+[1] needPeek (нет LOS)
+    Weight: 0.3
+    Curve: Linear
+
+[2] health
+    Weight: 0.2
+    Curve: Linear
+```
+
+### 1.1 Слух и подавление (НОВОЕ)
+
+- События шума: вызывайте `AI.EmitNoise(position, level, radius)` при выстрелах/взрывах.
+- Подавление: растёт от урона, затухает со временем; влияет на `TakeCover` и тайминги `PeekAndShoot`.
+
 # Быстрая настройка AI - Шпаргалка
 
 ## 0. Автоматическая генерация (НОВОЕ!)
@@ -198,6 +218,8 @@ AI Component:
 - [ ] Фракции настроены (Faction, Hostile Factions, Allied Factions)
 - [ ] **AIWeaponHandler добавлен (для дальней атаки)**
 - [ ] **Weapon Data назначен в AIWeaponHandler**
+- [ ] Создан ассет `AISettings.asset` (если используете автоприсвоение в генераторе)
+- [ ] Сгенерированы действия, включая `PeekAndShoot`
 
 ---
 
@@ -213,7 +235,7 @@ Vision Range: 20м
 
 ### Тактический стрелок
 ```
-Действия: Patrol, Pursue, RangedAttack, TakeCover, Flank
+Действия: Patrol, Pursue, RangedAttack, TakeCover, PeekAndShoot, Flank
 Веса TakeCover: 0.6-0.7
 Vision Angle: 120°
 Vision Range: 18м

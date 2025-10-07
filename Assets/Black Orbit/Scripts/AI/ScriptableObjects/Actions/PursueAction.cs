@@ -9,6 +9,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
     [CreateAssetMenu(menuName = "AI/Actions/Pursue", fileName = "Pursue")]
     public class PursueAction : UtilityAction
     {
+        public override ActionChannel Channel => ActionChannel.Movement;
         [Header("Параметры преследования")]
         [Tooltip("Желаемая дистанция до цели (метры). Если игрок дальше — преследуем")]
         public float desiredRange = 4f;
@@ -20,28 +21,37 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
 
         public override float[] GetInputs(Runtime.AI ai)
         {
-            if (ai.Target == null) return new[] { 0f, 0f };
             // Входы для Utility-системы:
             // [0] = цель вне желаемой дистанции (0..1, чем дальше, тем выше)
             // [1] = есть прямая видимость (1.0 если видим, 0.0 если нет)
-            float dist = Vector3.Distance(ai.transform.position, ai.Target.position);
-            float outOfRange = Mathf.Clamp01((dist - desiredRange) / (ai.VisionRange));
+            Vector3 targetPos;
+            if (ai.AttackTarget != null)
+                targetPos = ai.AttackTarget.position;
+            else
+                targetPos = ai.NavTargetPos;
+
+            float dist = Vector3.Distance(ai.transform.position, targetPos);
+            float outOfRange = Mathf.Clamp01((dist - desiredRange) / Mathf.Max(1f, ai.VisionRange));
             float hasLOS = ai.hasLineOfSight ? 1f : 0f;
             return new[] { outOfRange, hasLOS };
         }
 
         public override void Execute(Runtime.AI ai)
         {
-            if (ai.Target == null) return;
-            
-            // Двигаемся к цели
+            // Выбираем точку: при LOS двигаемся к живой цели, иначе — к навточке
+            Vector3 dest;
+            if (ai.AttackTarget != null && ai.hasLineOfSight)
+                dest = ai.AttackTarget.position;
+            else
+                dest = ai.NavTargetPos;
+
             _repathTimer -= Time.deltaTime;
             if (_repathTimer <= 0f)
             {
-                ai.MoveTo(ai.Target.position);
+                ai.MoveTo(dest);
                 _repathTimer = repathInterval;
             }
-            ai.LookAt(ai.Target.position);
+            ai.LookAt(dest);
         }
     }
 }

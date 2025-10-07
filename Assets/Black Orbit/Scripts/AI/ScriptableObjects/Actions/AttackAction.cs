@@ -9,6 +9,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
     [CreateAssetMenu(menuName = "AI/Actions/Attack (Legacy)", fileName = "Attack")]
     public class AttackAction : UtilityAction
     {
+        public override ActionChannel Channel => ActionChannel.Combat;
         public override float[] GetInputs(Runtime.AI ai)
         {
             if (!ai.Target) return new float[] { 0f, 0f };
@@ -27,8 +28,8 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
 
         public override void Execute(Runtime.AI ai)
         {
-            Debug.Log("⚔️ Атака!");
-            ai.Stop();
+            // Legacy: не управляем перемещением, только сигнализируем атаку
+            Debug.Log("⚔️ Атака (Legacy)");
         }
     }
 }

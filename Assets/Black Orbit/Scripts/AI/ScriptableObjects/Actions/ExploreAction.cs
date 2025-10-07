@@ -10,6 +10,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
     [CreateAssetMenu(menuName = "AI/Actions/Explore", fileName = "Explore")]
     public class ExploreAction : UtilityAction
     {
+        public override ActionChannel Channel => ActionChannel.Movement;
         [Header("Параметры исследования")]
         [Tooltip("Радиус случайного перемещения от текущей позиции (метры)")]
         public float radius = 15f;

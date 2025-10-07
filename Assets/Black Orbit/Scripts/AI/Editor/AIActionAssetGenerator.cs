@@ -45,6 +45,7 @@ namespace Black_Orbit.Scripts.AI.Editor
             if (GUILayout.Button("MeleeAttack")) CreateMeleeAttackAction();
             if (GUILayout.Button("Retreat")) CreateRetreatAction();
             if (GUILayout.Button("SuppressionFire")) CreateSuppressionFireAction();
+            if (GUILayout.Button("PeekAndShoot")) CreatePeekAndShootAction();
         }
 
         static void GenerateAllActions()
@@ -70,6 +71,7 @@ namespace Black_Orbit.Scripts.AI.Editor
             CreateMeleeAttackAction();
             CreateRetreatAction();
             CreateSuppressionFireAction();
+            CreatePeekAndShootAction();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -97,8 +99,8 @@ namespace Black_Orbit.Scripts.AI.Editor
         static void CreateExploreAction()
         {
             var action = ScriptableObject.CreateInstance<ExploreAction>();
-            action.radius = 15f;
-            action.repathInterval = 1.2f;
+            action.radius = 30f; // дальше гуляем в опенворлде
+            action.repathInterval = 1.5f;
             
             action.factors = new UtilityFactor[]
             {
@@ -112,8 +114,8 @@ namespace Black_Orbit.Scripts.AI.Editor
         static void CreateSearchLastKnownAction()
         {
             var action = ScriptableObject.CreateInstance<SearchLastKnownAction>();
-            action.tolerance = 0.7f;
-            action.scanTime = 3f;
+            action.tolerance = 1.5f; // больше допуск на больших дистанциях
+            action.scanTime = 4.5f; // дольше осматриваться в опенворлде
             
             action.factors = new UtilityFactor[]
             {
@@ -127,8 +129,8 @@ namespace Black_Orbit.Scripts.AI.Editor
         static void CreatePursueAction()
         {
             var action = ScriptableObject.CreateInstance<PursueAction>();
-            action.desiredRange = 4f;
-            action.repathInterval = 0.2f;
+            action.desiredRange = 6f; // держим чуть большую дистанцию
+            action.repathInterval = 0.3f;
             
             action.factors = new UtilityFactor[]
             {
@@ -142,9 +144,9 @@ namespace Black_Orbit.Scripts.AI.Editor
         static void CreateFlankAction()
         {
             var action = ScriptableObject.CreateInstance<FlankAction>();
-            action.flankDistance = 5f;
-            action.repathInterval = 0.5f;
-            action.minAngle = 60f;
+            action.flankDistance = 8f; // шире дуга фланга
+            action.repathInterval = 0.6f;
+            action.minAngle = 80f;
             
             action.factors = new UtilityFactor[]
             {
@@ -158,8 +160,8 @@ namespace Black_Orbit.Scripts.AI.Editor
         static void CreateTakeCoverAction()
         {
             var action = ScriptableObject.CreateInstance<TakeCoverAction>();
-            action.searchRadius = 12f;
-            action.repathInterval = 0.4f;
+            action.searchRadius = 18f; // искать укрытия дальше
+            action.repathInterval = 0.5f;
             
             action.factors = new UtilityFactor[]
             {
@@ -174,9 +176,9 @@ namespace Black_Orbit.Scripts.AI.Editor
         static void CreateRangedAttackAction()
         {
             var action = ScriptableObject.CreateInstance<RangedAttackAction>();
-            action.preferredRange = 12f;
-            action.minRange = 4f;
-            action.fireCooldown = 0.6f;
+            action.preferredRange = 20f; // комфортная дальняя дистанция в опенворлде
+            action.minRange = 6f;
+            action.fireCooldown = 0.7f;
             
             action.factors = new UtilityFactor[]
             {
@@ -191,8 +193,8 @@ namespace Black_Orbit.Scripts.AI.Editor
         static void CreateMeleeAttackAction()
         {
             var action = ScriptableObject.CreateInstance<MeleeAttackAction>();
-            action.strikeRange = 2.2f;
-            action.swingCooldown = 0.8f;
+            action.strikeRange = 2.5f;
+            action.swingCooldown = 0.9f;
             
             action.factors = new UtilityFactor[]
             {
@@ -219,9 +221,9 @@ namespace Black_Orbit.Scripts.AI.Editor
         static void CreateSuppressionFireAction()
         {
             var action = ScriptableObject.CreateInstance<SuppressionFireAction>();
-            action.maxTimeSinceSeen = 3f;
-            action.fireCooldown = 0.4f;
-            action.minRange = 5f;
+            action.maxTimeSinceSeen = 6f; // помнить цель дольше
+            action.fireCooldown = 0.5f;
+            action.minRange = 10f;
             
             action.factors = new UtilityFactor[]
             {
@@ -231,6 +233,23 @@ namespace Black_Orbit.Scripts.AI.Editor
             };
             
             SaveAsset(action, "SuppressionFire");
+        }
+
+        static void CreatePeekAndShootAction()
+        {
+            var action = ScriptableObject.CreateInstance<PeekAndShootAction>();
+            action.peekDuration = 0.9f;
+            action.hideDuration = 1.2f;
+            action.peekTurnSpeed = 10f;
+
+            action.factors = new UtilityFactor[]
+            {
+                CreateFactor("Есть цель", 0.5f, AnimationCurve.Linear(0, 0, 1, 1)),
+                CreateFactor("Нет LOS (нужно выглянуть)", 0.3f, AnimationCurve.Linear(0, 0, 1, 1)),
+                CreateFactor("Здоровье", 0.2f, AnimationCurve.Linear(0, 0, 1, 1))
+            };
+
+            SaveAsset(action, "PeekAndShoot");
         }
 
         static UtilityFactor CreateFactor(string name, float weight, AnimationCurve curve)

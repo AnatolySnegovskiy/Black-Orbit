@@ -1,3 +1,15 @@
+### 📤 PeekAndShoot
+```
+Параметры:
+- Peek Duration: 0.9 сек
+- Hide Duration: 1.2 сек
+- Peek Turn Speed: 10
+
+Факторы:
+[0] Есть цель (Weight: 0.5, Linear)
+[1] Нет LOS (нужно выглянуть) (Weight: 0.3, Linear)
+[2] Здоровье (Weight: 0.2, Linear)
+```
 # Готовые настройки AI Actions
 
 ## Автоматическая генерация
@@ -23,6 +35,7 @@
 - MeleeAttack
 - Retreat
 - SuppressionFire
+- PeekAndShoot
 
 ---
 
@@ -41,6 +54,7 @@
 - `MeleeAttack.asset` — ближняя атака
 - `Retreat.asset` — отступление
 - `SuppressionFire.asset` — подавляющий огонь
+- `PeekAndShoot.asset` — выглянуть и выстрелить (peek/hide из укрытия)
 
 ---
 
@@ -173,7 +187,7 @@
 ### Рекомендуемый набор для врага:
 
 ```
-Actions (Size: 8)
+Actions (Size: 9)
 ├─ [0] Patrol
 ├─ [1] Explore
 ├─ [2] SearchLastKnown
@@ -181,7 +195,8 @@ Actions (Size: 8)
 ├─ [4] Flank
 ├─ [5] TakeCover
 ├─ [6] RangedAttack
-└─ [7] SuppressionFire
+├─ [7] PeekAndShoot
+└─ [8] SuppressionFire
 ```
 
 ### Для ближнего боя:

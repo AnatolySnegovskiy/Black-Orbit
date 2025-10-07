@@ -1,9 +1,10 @@
-﻿using UnityEngine;
-using UnityEngine.InputSystem;
-using Black_Orbit.Scripts.WeaponSystem.Base;
+﻿using Black_Orbit.Scripts.WeaponSystem.Base;
+using Black_Orbit.Scripts.WeaponSystem.Runtime;
 using Black_Orbit.Scripts.WeaponSystem.ScriptableObjects;
+using UnityEngine;
+using UnityEngine.InputSystem;
 
-namespace Black_Orbit.Scripts.WeaponSystem.Runtime
+namespace Black_Orbit.Scripts.FPS
 {
     [RequireComponent(typeof(PlayerInput))]
     public class PlayerWeaponHandler : MonoBehaviour

@@ -34,6 +34,16 @@ namespace Black_Orbit.Scripts.AI.Runtime
         [Tooltip("Минимальное количество членов для координированной атаки")]
         public int minMembersForCoordination = 2;
 
+        [Header("Логика цели отряда")]
+        [Tooltip("Минимальное число голосов за одну цель, чтобы принять её как SquadTarget. Если голосов меньше — используем усреднённую последнюю позицию.")]
+        public int minVotesForTarget = 2;
+
+        [Tooltip("Если нет явной цели, двигаться к усреднённой последней позиции цели.")]
+        public bool useLastKnownWhenNoTarget = true;
+
+        [Tooltip("Длительность приказа SearchLastKnown для членов при координации без явной цели (секунды)")]
+        public float searchOrderDuration = 3f;
+
         // Внутреннее состояние
         private float _coordinationTimer;
         private Transform _squadTarget;
@@ -48,6 +58,81 @@ namespace Black_Orbit.Scripts.AI.Runtime
         
         /// <summary>Количество живых членов отряда</summary>
         public int AliveCount => members.Count(m => m != null && m.gameObject.activeInHierarchy);
+
+        /// <summary>
+        /// Репорт подавления от одного члена отряда — распределяет подавление по остальным (эффект общей настороженности)
+        /// </summary>
+        public void ReportSuppression(AI source, float level)
+        {
+            if (members == null || members.Count == 0) return;
+            float spread = Mathf.Clamp01(level) * 0.5f; // распределяем половину уровня
+            foreach (var m in members)
+            {
+                if (m == null || !m.gameObject.activeInHierarchy || m == source) continue;
+                m.AddSuppression(spread);
+            }
+        }
+
+        /// <summary>
+        /// Отдать комбинированный приказ: подавление позиции и фланг.
+        /// suppressors и flankers — целевые количества, если людей меньше, берём по возможности.
+        /// </summary>
+        public void OrderSuppressAt(Vector3 pos, float duration = 3f, int suppressors = 2, int flankers = 1)
+        {
+            if (members == null || members.Count == 0) return;
+            var alive = members.Where(m => m != null && m.gameObject.activeInHierarchy).ToList();
+            if (alive.Count == 0) return;
+
+            // Выберем подавляющих — с наилучшей «линией на цель» (минимальный угол к pos)
+            var dirTo = alive.Select(m => new {
+                M = m,
+                Score = Vector3.Dot((pos - m.transform.position).normalized, m.transform.forward)
+            }).OrderByDescending(x => x.Score).ToList();
+
+            var chosenSuppress = dirTo.Take(Mathf.Min(suppressors, dirTo.Count)).Select(x => x.M).ToList();
+
+            // Остальных ранжируем по латерали для фланга
+            var rest = alive.Except(chosenSuppress).ToList();
+            Vector3 toPosNorm(AI m) => (pos - m.transform.position).normalized;
+            var flankChosen = rest
+                .Select(m => new { M = m, Score = Mathf.Abs(Vector3.Dot(m.transform.right, toPosNorm(m))) })
+                .OrderByDescending(x => x.Score)
+                .Take(Mathf.Min(flankers, rest.Count))
+                .Select(x => x.M)
+                .ToList();
+
+            // Отдаём приказы
+            foreach (var s in chosenSuppress)
+            {
+                s.OrderAction("RangedAttack", duration);
+            }
+            foreach (var f in flankChosen)
+            {
+                f.OrderAction("Flank", duration);
+            }
+        }
+
+        /// <summary>
+        /// Прикажи части отряда выполнить Flank на указанную длительность (по умолчанию 2 бойца)
+        /// </summary>
+        public void OrderFlank(Vector3 aroundPos, float duration = 3f, int maxFlankers = 2)
+        {
+            if (members == null || members.Count == 0) return;
+            var alive = members.Where(m => m != null && m.gameObject.activeInHierarchy).ToList();
+            if (alive.Count == 0) return;
+
+            // Выберем кандидатов по наибольшей латерали относительно направления на точку
+            Vector3 toPosNorm(AI m) => (aroundPos - m.transform.position).normalized;
+            var scored = alive.Select(m => new {
+                M = m,
+                Score = Mathf.Abs(Vector3.Dot(m.transform.right, toPosNorm(m))) // чем больше латеральная составляющая, тем лучше фланкёр
+            }).OrderByDescending(x => x.Score).Take(Mathf.Max(1, maxFlankers));
+
+            foreach (var s in scored)
+            {
+                s.M.OrderAction("Flank", duration);
+            }
+        }
 
         void Start()
         {
@@ -150,8 +235,34 @@ namespace Black_Orbit.Scripts.AI.Runtime
 
             if (targetCounts.Count > 0)
             {
-                _squadTarget = targetCounts.OrderByDescending(kvp => kvp.Value).First().Key;
-                _lastKnownTargetPos = _squadTarget.position;
+                var top = targetCounts.OrderByDescending(kvp => kvp.Value).First();
+                if (top.Value >= Mathf.Max(1, minVotesForTarget))
+                {
+                    _squadTarget = top.Key;
+                    _lastKnownTargetPos = _squadTarget.position;
+                }
+                else
+                {
+                    _squadTarget = null;
+                }
+            }
+            else
+            {
+                // Нет явной цели: агрегируем последнюю известную позицию по членам
+                Vector3 sum = Vector3.zero;
+                int count = 0;
+                foreach (var member in members)
+                {
+                    if (member == null) continue;
+                    var lp = member.lastSeenTargetPos;
+                    if (!float.IsPositiveInfinity(lp.x) && lp != Vector3.zero)
+                    {
+                        sum += lp;
+                        count++;
+                    }
+                }
+                _squadTarget = null;
+                _lastKnownTargetPos = count > 0 ? sum / count : Vector3.positiveInfinity;
             }
         }
 
@@ -160,7 +271,19 @@ namespace Black_Orbit.Scripts.AI.Runtime
         /// </summary>
         void CoordinateSquad()
         {
-            if (_squadTarget == null) return;
+            // Если явной цели нет, но есть последняя известная позиция — координируем поиск
+            if (_squadTarget == null)
+            {
+                if (!useLastKnownWhenNoTarget || _lastKnownTargetPos == Vector3.positiveInfinity) return;
+                // Задаём всем навигационную цель и приказываем поиск последней позиции
+                foreach (var m in members)
+                {
+                    if (m == null || !m.gameObject.activeInHierarchy) continue;
+                    m.NavTargetPos = _lastKnownTargetPos;
+                    m.OrderAction("SearchLastKnown", searchOrderDuration > 0f ? searchOrderDuration : coordinationInterval);
+                }
+                return;
+            }
 
             // Очищаем старые роли
             _assignedRoles.Clear();
@@ -207,10 +330,42 @@ namespace Black_Orbit.Scripts.AI.Runtime
                 AssignRole(sorted[1], SquadRole.Suppressor);
             }
 
+            // Если отряд под сильным подавлением — усиливаем долю фланкёров
+            float avgSuppression = 0f;
+            if (sorted.Count > 0)
+            {
+                avgSuppression = sorted.Average(m => m.SuppressionLevel);
+            }
+            if (avgSuppression >= 0.5f)
+            {
+                // Выберем до 2 бойцов не-фланкёров и сделаем их фланкёрами
+                int converted = 0;
+                foreach (var m in sorted)
+                {
+                    if (converted >= 2) break;
+                    if (!_assignedRoles.TryGetValue(m, out var role) || role == SquadRole.Flanker) continue;
+                    _assignedRoles[m] = SquadRole.Flanker;
+                    converted++;
+                }
+            }
+
             // Отдаём приказы на основе ролей
             foreach (var kvp in _assignedRoles)
             {
                 GiveOrderBasedOnRole(kvp.Key, kvp.Value);
+            }
+
+            // Дополнительно: при очень высоком подавлении делаем комбинированный приказ «подавление+фланг» вокруг цели
+            if (_squadTarget != null)
+            {
+                // Используем уже собранный список alivemembers и/или рассчитанный выше avgSuppression
+                float avgSuppressionFinal = 0f;
+                if (alivemembers != null && alivemembers.Count > 0)
+                    avgSuppressionFinal = alivemembers.Average(m => m.SuppressionLevel);
+                if (avgSuppressionFinal >= 0.75f)
+                {
+                    OrderSuppressAt(_squadTarget.position, coordinationInterval * 2f, suppressors: 2, flankers: 1);
+                }
             }
         }
 
@@ -313,6 +468,13 @@ namespace Black_Orbit.Scripts.AI.Runtime
             {
                 Gizmos.color = Color.blue;
                 Gizmos.DrawWireSphere(leader.transform.position, searchRadius);
+            }
+
+            // Рисуем последнюю известную позицию цели отряда
+            if (_lastKnownTargetPos != Vector3.positiveInfinity && _lastKnownTargetPos != Vector3.zero)
+            {
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawSphere(_lastKnownTargetPos, 0.2f);
             }
         }
     }

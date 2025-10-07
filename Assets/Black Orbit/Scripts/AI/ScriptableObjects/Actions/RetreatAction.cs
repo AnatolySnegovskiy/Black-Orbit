@@ -10,6 +10,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
     [CreateAssetMenu(menuName = "AI/Actions/Retreat", fileName = "Retreat")]
     public class RetreatAction : UtilityAction
     {
+        public override ActionChannel Channel => ActionChannel.Movement;
         public override float[] GetInputs(Runtime.AI ai)
         {
             if (ai.Target == null) return new float[] { 0f, 0f };

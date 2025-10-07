@@ -74,5 +74,5 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  strikeRange: 2.2
-  swingCooldown: 0.8
+  strikeRange: 2.5
+  swingCooldown: 0.9

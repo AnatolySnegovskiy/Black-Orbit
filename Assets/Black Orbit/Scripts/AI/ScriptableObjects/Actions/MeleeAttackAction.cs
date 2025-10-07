@@ -9,6 +9,7 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
     [CreateAssetMenu(menuName = "AI/Actions/MeleeAttack", fileName = "MeleeAttack")]
     public class MeleeAttackAction : UtilityAction
     {
+        public override ActionChannel Channel => ActionChannel.Combat;
         [Header("Параметры ближней атаки")]
         [Tooltip("Дистанция удара — максимальная дальность для нанесения урона (метры)")]
         public float strikeRange = 2.2f;
@@ -34,21 +35,15 @@ namespace Black_Orbit.Scripts.AI.ScriptableObjects.Actions
         {
             if (ai.Target == null) return;
             float dist = Vector3.Distance(ai.transform.position, ai.Target.position);
-            
-            if (dist > strikeRange * 0.9f)
+
+            // Боевой канал: не управляем перемещением, только прицел и удар, если на дистанции
+            ai.LookAt(ai.Target.position);
+            if (dist <= strikeRange)
             {
-                // Сближаемся с целью
-                ai.MoveTo(ai.Target.position);
-            }
-            else
-            {
-                // В радиусе удара — останавливаемся и атакуем
-                ai.Stop();
-                ai.LookAt(ai.Target.position);
                 _cooldown -= Time.deltaTime;
                 if (_cooldown <= 0f)
                 {
-                    // TODO: подключить систему оружения/анимацию удара
+                    // TODO: подключить систему оружия/анимацию удара/урон по цели
                     Debug.Log("⚔️ Ближняя атака");
                     _cooldown = swingCooldown;
                 }

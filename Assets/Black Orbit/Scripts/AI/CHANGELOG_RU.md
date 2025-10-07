@@ -1,5 +1,44 @@
 # История изменений AI системы
 
+## Версия 3.1 - Suppression/Audio/Cover v2/Orders (05.10.2025)
+
+### ✨ Новые возможности
+
+- **Подавление (Suppression)**
+  - Поле `AIBlackboard.SuppressionLevel` с плавным затуханием
+  - Генерация подавления из урона: `AI` подписывается на `Health.OnDamaged`
+  - Влияние на поведение:
+    - `TakeCoverAction` повышает приоритет под огнём
+    - `PeekAndShootAction` динамически сокращает `peek` и увеличивает `hide`
+
+- **Слух (Audio v1)**
+  - `AI.EmitNoise(position, level, radius)` рассылает события шума
+  - `AIBlackboard.HeardNoisePos/NoiseLevel` с затуханием
+  - При отсутствии цели `NavTargetPos` берётся из источника шума
+
+- **Укрытия v2**
+  - `CoverService`: выбор точки «за» препятствием по нормали с латеральным смещением
+  - Привязка к `NavMesh` и валидация LOS-блокировки
+  - `TakeCoverAction`: кэш точки укрытия с проверкой валидности
+
+- **Приказы отряда**
+  - `AISquad.ReportSuppression(source, level)` — распределение подавления внутри отряда
+  - `AISquad.OrderFlank(aroundPos, duration, maxFlankers)` — фланговый приказ
+  - `AISquad.OrderSuppressAt(pos, duration, suppressors, flankers)` — комбинированный приказ «подавление + фланг»
+  - При высоком среднем подавлении отряд увеличивает долю фланкёров
+
+- **PeekAndShootAction**
+  - Добавлено новое действие с фазами peek/hide и учётом подавления
+
+- **Генераторы**
+  - `AIActionAssetGenerator`: генерация `PeekAndShoot`
+  - `AIPrefabGenerator`: добавлены `TakeCover` и `PeekAndShoot` в пресеты; автоназначение `AISettings.asset`
+
+- **Документация**
+  - Обновлены: `README_RU.md`, `QUICK_SETUP_RU.md`, `SQUAD_SYSTEM_RU.md`, `README_ACTIONS.md`, `README_PREFABS.md`
+
+---
+
 ## Версия 3.0 - Faction System Overhaul (04.10.2025)
 
 ### 🎯 Полностью переработанная система фракций

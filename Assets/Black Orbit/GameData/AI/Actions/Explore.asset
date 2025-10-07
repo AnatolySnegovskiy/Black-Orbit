@@ -65,5 +65,5 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  radius: 15
-  repathInterval: 1.2
+  radius: 30
+  repathInterval: 1.5
