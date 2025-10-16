@@ -5,6 +5,7 @@ using Black_Orbit.Scripts.AI.Runtime.Blackboard;
 using Black_Orbit.Scripts.AI.Runtime.Core;
 using Black_Orbit.Scripts.AI.Runtime.Domains;
 using Black_Orbit.Scripts.AI.Runtime.Actions;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Controller
 {
@@ -13,6 +14,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
         [Range(0.05f, 2f)] public float tickRate = 0.25f;
 
         public Blackboard.Blackboard Blackboard { get; private set; }
+        public UtilityCurveSet UtilityCurves { get; private set; }
 
         private readonly Dictionary<DomainId, AIDomain> _domains = new();
 
@@ -44,6 +46,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
 
         private void Awake()
         {
+            UtilityCurves = new UtilityCurveSet();
             Blackboard = new Blackboard.Blackboard();
             EnsureDomains();
         }

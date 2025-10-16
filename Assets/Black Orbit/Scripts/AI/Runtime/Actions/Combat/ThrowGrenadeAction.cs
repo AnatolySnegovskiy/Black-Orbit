@@ -1,8 +1,10 @@
+using System;
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
 using Black_Orbit.Scripts.AI.Runtime.Core;
 using Black_Orbit.Scripts.AI.Runtime.Considerations;
 using Black_Orbit.Scripts.AI.Runtime.Combat;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Actions.Combat
 {
@@ -14,10 +16,12 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Combat
         private readonly float _maxRange;
         private readonly float _cooldown;
         private float _nextReadyTime;
+        private readonly UtilityCurveSet _curves;
 
         public ThrowGrenadeAction(
             Transform agent,
             AIGrenadeThrower thrower,
+            UtilityCurveSet curves,
             float baseWeight = 0.5f,
             float minRange = 6f,
             float maxRange = 20f,
@@ -29,13 +33,14 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Combat
             _minRange = Mathf.Max(0.5f, Mathf.Min(minRange, maxRange));
             _maxRange = Mathf.Max(_minRange + 0.1f, maxRange);
             _cooldown = Mathf.Max(0.1f, cooldown);
+            _curves = curves ?? throw new ArgumentNullException(nameof(curves));
         }
 
         public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
         {
             // Видимость цели и нахождение цели в диапазоне броска
-            yield return new Visibility();
-            yield return new GrenadeRange(_agent, _minRange, _maxRange);
+            yield return new Visibility(_curves);
+            yield return new GrenadeRange(_curves, _agent, _minRange, _maxRange);
         }
 
         public override bool CanStart(Blackboard.Blackboard bb)

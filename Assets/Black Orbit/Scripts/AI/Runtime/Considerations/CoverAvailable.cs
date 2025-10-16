@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
@@ -7,12 +8,14 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
 {
     public class CoverAvailable : IConsideration
     {
+        private readonly UtilityCurveSet _curves;
         private readonly Transform _agent;
         private readonly float _searchRadius;
         public string Name => nameof(CoverAvailable);
 
-        public CoverAvailable(Transform agent, float searchRadius = 20f)
+        public CoverAvailable(UtilityCurveSet curves, Transform agent, float searchRadius = 20f)
         {
+            _curves = curves ?? throw new ArgumentNullException(nameof(curves));
             _agent = agent;
             _searchRadius = Mathf.Max(1f, searchRadius);
         }
@@ -32,7 +35,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
 
             if (best == float.MaxValue) return 0f;
             float raw = Mathf.Clamp01(1f - Mathf.Clamp01(best / _searchRadius));
-            return UtilityCurvesRegistry.Eval(UtilityCurvesRegistry.CoverAvailableCurve, raw);
+            return _curves.Evaluate(_curves.CoverAvailableCurve, raw);
         }
     }
 }

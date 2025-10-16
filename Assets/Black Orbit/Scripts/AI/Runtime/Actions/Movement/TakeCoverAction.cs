@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
 using Black_Orbit.Scripts.AI.Runtime.Core;
+using System;
 using Black_Orbit.Scripts.AI.Runtime.Considerations;
 using Black_Orbit.Scripts.AI.Runtime.Movement;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
 {
@@ -13,22 +15,24 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
         private readonly AIMovementMotor _motor;
         private readonly float _searchRadius;
         private readonly float _minDistanceToTarget;
+        private readonly UtilityCurveSet _curves;
         private Vector3 _coverPoint;
 
-        public TakeCoverAction(Transform agent, AIMovementMotor motor, float baseWeight = 0.85f, float searchRadius = 25f, float minDistanceToTarget = 6f)
+        public TakeCoverAction(Transform agent, AIMovementMotor motor, UtilityCurveSet curves, float baseWeight = 0.85f, float searchRadius = 25f, float minDistanceToTarget = 6f)
             : base(DomainId.Movement, ExecutionType.Parallel, baseWeight)
         {
             _agent = agent;
             _motor = motor;
             _searchRadius = Mathf.Max(3f, searchRadius);
             _minDistanceToTarget = Mathf.Max(1f, minDistanceToTarget);
+            _curves = curves ?? throw new ArgumentNullException(nameof(curves));
         }
 
         public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
         {
             // Приоритет выше, если есть укрытия поблизости и цель видима (угроза)
-            yield return new CoverAvailable(_agent, _searchRadius);
-            yield return new Visibility();
+            yield return new CoverAvailable(_curves, _agent, _searchRadius);
+            yield return new Visibility(_curves);
         }
 
         public override bool CanStart(Blackboard.Blackboard bb) => _motor != null;

@@ -1,3 +1,4 @@
+using System;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Utility;
@@ -7,12 +8,14 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
     // Возвращает высокий вес при низком здоровье (Self.Health 0..1)
     public class LowHealth : IConsideration
     {
+        private readonly UtilityCurveSet _curves;
         private readonly float _critical;
         private readonly float _max;
         public string Name => nameof(LowHealth);
 
-        public LowHealth(float critical = 0.3f, float max = 0.7f)
+        public LowHealth(UtilityCurveSet curves, float critical = 0.3f, float max = 0.7f)
         {
+            _curves = curves ?? throw new ArgumentNullException(nameof(curves));
             _critical = Mathf.Clamp01(Mathf.Min(critical, max));
             _max = Mathf.Clamp01(Mathf.Max(critical, max));
         }
@@ -28,7 +31,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
                 float t = (h - _critical) / Mathf.Max(0.0001f, (_max - _critical));
                 raw = 1f - Mathf.Clamp01(t);
             }
-            return UtilityCurvesRegistry.Eval(UtilityCurvesRegistry.LowHealthCurve, raw);
+            return _curves.Evaluate(_curves.LowHealthCurve, raw);
         }
     }
 }
