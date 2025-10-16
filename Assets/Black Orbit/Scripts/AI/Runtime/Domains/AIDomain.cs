@@ -41,16 +41,46 @@ namespace Black_Orbit.Scripts.AI.Runtime.Domains
 
         public void TickActive(Blackboard.Blackboard bb, float dt)
         {
-            _active?.Tick(bb, dt);
+            if (_active == null)
+                return;
+
+            if (!_active.IsActive)
+            {
+                _active = null;
+                return;
+            }
+
+            _active.Tick(bb, dt);
+
+            if (_active != null && !_active.IsActive)
+            {
+                _active = null;
+            }
         }
 
         // Управление активностью внутри домена (одна активная в домене)
         public void Activate(Blackboard.Blackboard bb, AIAction action)
         {
-            if (_active == action) return;
-            _active?.Stop(bb);
+            if (_active == action)
+            {
+                if (_active != null && !_active.IsActive)
+                {
+                    _active.Start(bb);
+                }
+                return;
+            }
+
+            if (_active != null)
+            {
+                _active.Stop(bb);
+            }
+
             _active = action;
-            _active?.Start(bb);
+
+            if (_active != null)
+            {
+                _active.Start(bb);
+            }
         }
 
         public void Deactivate(Blackboard.Blackboard bb)
@@ -59,6 +89,18 @@ namespace Black_Orbit.Scripts.AI.Runtime.Domains
             _active = null;
         }
 
-        public AIAction GetActive() => _active;
+        public AIAction GetActive()
+        {
+            if (_active == null)
+                return null;
+
+            if (!_active.IsActive)
+            {
+                _active = null;
+                return null;
+            }
+
+            return _active;
+        }
     }
 }
