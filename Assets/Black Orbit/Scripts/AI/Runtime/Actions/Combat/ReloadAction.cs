@@ -23,11 +23,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Combat
             _lowThreshold = Mathf.Max(0, lowThreshold);
             _highThreshold = Mathf.Max(_lowThreshold + 1, highThreshold);
             _curves = curves ?? throw new ArgumentNullException(nameof(curves));
-        }
-
-        public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
-        {
-            yield return new AmmoLow(_curves, _lowThreshold, _highThreshold);
+            AddConsideration(new AmmoLow(_curves, _lowThreshold, _highThreshold));
         }
 
         public override bool CanStart(Blackboard.Blackboard bb)

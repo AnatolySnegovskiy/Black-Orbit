@@ -22,13 +22,9 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
             _motor = motor;
             _maxDistance = Mathf.Max(5f, maxDistance);
             _curves = curves ?? throw new ArgumentNullException(nameof(curves));
-        }
-
-        public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
-        {
-            // Чем дальше цель и чем лучше видимость — тем выше приоритет преследования
-            yield return new DistanceToTarget(_curves, _agent, _maxDistance, invert: false);
-            yield return new Visibility(_curves);
+            AddConsiderations(
+                new DistanceToTarget(_curves, _agent, _maxDistance, invert: false),
+                new Visibility(_curves));
         }
 
         public override bool CanStart(Blackboard.Blackboard bb)

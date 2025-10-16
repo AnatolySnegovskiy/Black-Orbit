@@ -34,13 +34,9 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Combat
             _maxRange = Mathf.Max(_minRange + 0.1f, maxRange);
             _cooldown = Mathf.Max(0.1f, cooldown);
             _curves = curves ?? throw new ArgumentNullException(nameof(curves));
-        }
-
-        public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
-        {
-            // Видимость цели и нахождение цели в диапазоне броска
-            yield return new Visibility(_curves);
-            yield return new GrenadeRange(_curves, _agent, _minRange, _maxRange);
+            AddConsiderations(
+                new Visibility(_curves),
+                new GrenadeRange(_curves, _agent, _minRange, _maxRange));
         }
 
         public override bool CanStart(Blackboard.Blackboard bb)

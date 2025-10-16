@@ -24,12 +24,9 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Combat
             _retreatPenalty = Mathf.Clamp01(retreatPenalty);
             _suppressBoost = Mathf.Max(0.1f, suppressBoost);
             _curves = curves ?? throw new ArgumentNullException(nameof(curves));
-        }
-
-        public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
-        {
-            yield return new HasAmmo(_curves);
-            yield return new Visibility(_curves);
+            AddConsiderations(
+                new HasAmmo(_curves),
+                new Visibility(_curves));
         }
 
         public override bool CanStart(Blackboard.Blackboard bb)

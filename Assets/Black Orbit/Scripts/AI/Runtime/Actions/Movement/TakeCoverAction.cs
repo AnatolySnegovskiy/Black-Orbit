@@ -26,13 +26,9 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
             _searchRadius = Mathf.Max(3f, searchRadius);
             _minDistanceToTarget = Mathf.Max(1f, minDistanceToTarget);
             _curves = curves ?? throw new ArgumentNullException(nameof(curves));
-        }
-
-        public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
-        {
-            // Приоритет выше, если есть укрытия поблизости и цель видима (угроза)
-            yield return new CoverAvailable(_curves, _agent, _searchRadius);
-            yield return new Visibility(_curves);
+            AddConsiderations(
+                new CoverAvailable(_curves, _agent, _searchRadius),
+                new Visibility(_curves));
         }
 
         public override bool CanStart(Blackboard.Blackboard bb) => _motor != null;
