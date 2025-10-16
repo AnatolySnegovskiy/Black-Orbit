@@ -15,8 +15,9 @@ namespace Black_Orbit.Scripts.AI.Debug.Editor
         private AIController _selected;
         private bool _autoSelectFirst = true;
         private bool _followSelection = true;
+        private string _selectionWarning;
 
-        [MenuItem("Black Orbit/AI/Utility Debug View")] 
+        [MenuItem("Black Orbit/AI/Utility Debug View")]
         public static void ShowWindow()
         {
             var wnd = GetWindow<UtilityDebugWindow>();
@@ -27,10 +28,13 @@ namespace Black_Orbit.Scripts.AI.Debug.Editor
         private void OnEnable()
         {
             EditorApplication.update += Repaint;
+            Selection.selectionChanged += OnSelectionChanged;
+            UpdateSelectionFromScene(force: true);
         }
         private void OnDisable()
         {
             EditorApplication.update -= Repaint;
+            Selection.selectionChanged -= OnSelectionChanged;
         }
 
         private void OnGUI()
@@ -46,7 +50,16 @@ namespace Black_Orbit.Scripts.AI.Debug.Editor
             EditorGUILayout.BeginVertical(GUILayout.Width(260));
             EditorGUILayout.LabelField("AI Agents", EditorStyles.boldLabel);
             _autoSelectFirst = EditorGUILayout.ToggleLeft("Auto-select first", _autoSelectFirst);
+            bool followPrev = _followSelection;
             _followSelection = EditorGUILayout.ToggleLeft("Follow Scene Selection", _followSelection);
+            if (_followSelection && !followPrev)
+            {
+                UpdateSelectionFromScene(force: true);
+            }
+            else if (!_followSelection && followPrev)
+            {
+                _selectionWarning = null;
+            }
 
             _scrollLeft = EditorGUILayout.BeginScrollView(_scrollLeft, GUILayout.ExpandHeight(true));
             var list = AIController.Registry;
@@ -60,6 +73,7 @@ namespace Black_Orbit.Scripts.AI.Debug.Editor
                     if (GUILayout.Toggle(isSel, ai.name, "Button"))
                     {
                         _selected = ai;
+                        _selectionWarning = null;
                     }
                     EditorGUILayout.EndHorizontal();
                 }
@@ -81,7 +95,14 @@ namespace Black_Orbit.Scripts.AI.Debug.Editor
             EditorGUILayout.BeginVertical();
             if (_selected == null)
             {
-                EditorGUILayout.HelpBox("Выберите AIController слева.", MessageType.None);
+                if (!string.IsNullOrEmpty(_selectionWarning))
+                {
+                    EditorGUILayout.HelpBox(_selectionWarning, MessageType.Warning);
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("Выберите AIController слева.", MessageType.None);
+                }
                 EditorGUILayout.EndVertical();
                 return;
             }
@@ -137,6 +158,48 @@ namespace Black_Orbit.Scripts.AI.Debug.Editor
             var rect = EditorGUILayout.GetControlRect();
             float bar = Mathf.Clamp01(s.score);
             EditorGUI.ProgressBar(rect, bar, $"{s.name}  [{s.exec}]  {s.score:F2}");
+        }
+
+        private void OnSelectionChanged()
+        {
+            UpdateSelectionFromScene();
+        }
+
+        private void UpdateSelectionFromScene(bool force = false)
+        {
+            if (!_followSelection && !force)
+                return;
+
+            string warning = null;
+            _selected = ResolveSelectionFromActive(ref warning);
+            _selectionWarning = warning;
+            Repaint();
+        }
+
+        private AIController ResolveSelectionFromActive(ref string warning)
+        {
+            warning = null;
+
+            if (Selection.activeObject is AIController directController)
+            {
+                return directController;
+            }
+
+            var go = Selection.activeGameObject;
+            if (go == null)
+            {
+                warning = "Нет выбранного объекта в сцене.";
+                return null;
+            }
+
+            var controller = go.GetComponentInParent<AIController>(true);
+            if (controller != null)
+            {
+                return controller;
+            }
+
+            warning = $"Объект '{go.name}' не содержит AIController.";
+            return null;
         }
     }
 }
