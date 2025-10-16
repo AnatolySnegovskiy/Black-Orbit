@@ -181,7 +181,9 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                     domain.AddAction(new RetreatDecisionAction(transform, ctrl.UtilityCurves,
                         profile.Tactics.RetreatDecision.baseWeight,
                         profile.Tactics.RetreatDecision.retreatDistance,
-                        profile.Tactics.RetreatDecision.preferCover));
+                        profile.Tactics.RetreatDecision.preferCover,
+                        profile.Tactics.RetreatDecision.critical,
+                        profile.Tactics.RetreatDecision.max));
                 }
 
                 // RetreatMove регистрируется в Movement домене, т.к. это движение
