@@ -74,32 +74,60 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
         private void Tick(float dt)
         {
             // 1) Оценка лучших действий по доменам
-            var winners = new List<AIAction>();
+            var winners = new Dictionary<DomainId, AIAction>();
             LastScores.Clear();
             foreach (var kv in _domains)
             {
                 var domain = kv.Value;
-                // Собираем оценки всех действий домена
-                var scores = new List<ActionScore>();
-                foreach (var a in domain.Actions)
+                var actions = domain.Actions;
+
+                var scores = new List<ActionScore>(actions.Count);
+                AIAction best = null;
+                float bestScore = 0f;
+
+                foreach (var action in actions)
                 {
-                    var s = a.ComputeUtility(Blackboard);
-                    scores.Add(new ActionScore { name = a.Name, score = s, domain = domain.Id, exec = a.Execution });
+                    var score = action.ComputeUtility(Blackboard);
+                    scores.Add(new ActionScore
+                    {
+                        name = action.Name,
+                        score = score,
+                        domain = domain.Id,
+                        exec = action.Execution
+                    });
+
+                    if (score > bestScore && action.CanStart(Blackboard))
+                    {
+                        bestScore = score;
+                        best = action;
+                    }
                 }
+
+                scores.Sort((a, b) => b.score.CompareTo(a.score));
                 LastScores[domain.Id] = scores;
 
-                var best = domain.EvaluateBest(Blackboard);
-                if (best != null) winners.Add(best);
+                if (best != null)
+                {
+                    winners[domain.Id] = best;
+                }
             }
 
             // 2) Разрешение конфликтов по ExecutionType
-            bool hasExclusive = winners.Exists(a => (a.Execution & ExecutionType.Exclusive) != 0);
+            bool hasExclusive = false;
+            foreach (var winner in winners.Values)
+            {
+                if ((winner.Execution & ExecutionType.Exclusive) != 0)
+                {
+                    hasExclusive = true;
+                    break;
+                }
+            }
 
             foreach (var kv in _domains)
             {
                 var domain = kv.Value;
-                var best = domain.EvaluateBest(Blackboard);
-                if (best == null)
+
+                if (!winners.TryGetValue(domain.Id, out var best))
                 {
                     domain.Deactivate(Blackboard);
                     continue;
