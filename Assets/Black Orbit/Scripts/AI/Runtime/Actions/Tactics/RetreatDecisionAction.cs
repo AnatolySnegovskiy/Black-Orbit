@@ -27,12 +27,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Tactics
             _curves = curves ?? throw new ArgumentNullException(nameof(curves));
             _criticalHealth = Mathf.Clamp01(criticalHealth);
             _maxHealth = Mathf.Clamp01(maxHealth);
-        }
-
-        public override IEnumerable<IConsideration> GetConsiderations()
-        {
-            // Основной драйвер — LowHealth
-            yield return new LowHealth(_curves, _criticalHealth, _maxHealth);
+            AddConsideration(new LowHealth(_curves, _criticalHealth, _maxHealth));
         }
 
         protected override void OnStart(Blackboard.Blackboard bb)

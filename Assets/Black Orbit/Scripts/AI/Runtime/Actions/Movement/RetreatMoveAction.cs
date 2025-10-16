@@ -16,12 +16,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
             : base(DomainId.Movement, ExecutionType.Parallel, baseWeight)
         {
             _motor = motor; _agent = agent;
-        }
-
-        public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
-        {
-            yield return new IsRetreating();
-            // Можно добавить инверсию Visibility, чтобы усилить при видимой угрозе
+            AddConsideration(new IsRetreating());
         }
 
         public override bool CanStart(Blackboard.Blackboard bb) => _motor != null;

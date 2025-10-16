@@ -23,11 +23,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
             _motor = motor;
             _radius = Mathf.Max(5f, radius);
             _curves = curves ?? throw new ArgumentNullException(nameof(curves));
-        }
-
-        public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
-        {
-            yield return new ExploreNeed(_curves);
+            AddConsideration(new ExploreNeed(_curves));
         }
 
         public override bool CanStart(Blackboard.Blackboard bb)

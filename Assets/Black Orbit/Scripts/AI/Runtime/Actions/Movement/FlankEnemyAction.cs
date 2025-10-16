@@ -25,13 +25,9 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
             _flankDistance = Mathf.Max(3f, flankDistance);
             _orderBoost = Mathf.Max(0.1f, orderBoost);
             _curves = curves ?? throw new ArgumentNullException(nameof(curves));
-        }
-
-        public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
-        {
-            // Лучше фланговать когда цель видна и мы не слишком близко
-            yield return new Visibility(_curves);
-            yield return new DistanceToTarget(_curves, _agent, _flankDistance * 3f, invert: false);
+            AddConsiderations(
+                new Visibility(_curves),
+                new DistanceToTarget(_curves, _agent, _flankDistance * 3f, invert: false));
         }
 
         public override bool CanStart(Blackboard.Blackboard bb) => _motor != null;

@@ -18,6 +18,8 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions
         protected readonly DomainId domainId;
         protected readonly ExecutionType executionType;
         protected readonly float baseWeight;
+        private readonly List<IConsideration> _considerations = new();
+        private readonly List<float> _considerationValues = new();
 
         protected AIAction(DomainId domain, ExecutionType exec, float baseWeight = 1f)
         {
@@ -26,14 +28,44 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions
             this.baseWeight = baseWeight;
         }
 
-        public virtual IEnumerable<IConsideration> GetConsiderations() { yield break; }
+        protected IReadOnlyList<IConsideration> CachedConsiderations => _considerations;
+
+        public virtual IEnumerable<IConsideration> GetConsiderations() => _considerations;
+
+        protected void AddConsideration(IConsideration consideration)
+        {
+            if (consideration == null) return;
+            _considerations.Add(consideration);
+            if (_considerationValues.Capacity < _considerations.Count)
+                _considerationValues.Capacity = _considerations.Count;
+        }
+
+        protected void AddConsiderations(params IConsideration[] considerations)
+        {
+            if (considerations == null) return;
+            for (int i = 0; i < considerations.Length; i++)
+            {
+                AddConsideration(considerations[i]);
+            }
+        }
+
+        protected void ClearConsiderations()
+        {
+            _considerations.Clear();
+            _considerationValues.Clear();
+        }
 
         public virtual float ComputeUtility(Blackboard.Blackboard bb)
         {
-            var vals = new List<float>();
-            foreach (var c in GetConsiderations())
-                vals.Add(Mathf.Clamp01(c.Evaluate(bb)));
-            float combined = UtilityEvaluator.CombineMultiplyCompensate(vals);
+            _considerationValues.Clear();
+            for (int i = 0; i < _considerations.Count; i++)
+            {
+                var consideration = _considerations[i];
+                if (consideration == null) continue;
+                _considerationValues.Add(Mathf.Clamp01(consideration.Evaluate(bb)));
+            }
+
+            float combined = UtilityEvaluator.CombineMultiplyCompensate(_considerationValues);
             return Mathf.Clamp01(combined * Mathf.Max(0f, BaseWeight));
         }
 
