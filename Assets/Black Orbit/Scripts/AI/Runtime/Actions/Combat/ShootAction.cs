@@ -1,8 +1,10 @@
+using System;
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
 using Black_Orbit.Scripts.AI.Runtime.Core;
 using Black_Orbit.Scripts.AI.Runtime.Considerations;
 using Black_Orbit.Scripts.AI.Runtime.Combat;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Actions.Combat
 {
@@ -12,20 +14,22 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Combat
         private readonly AICombat _combat;
         private readonly float _retreatPenalty;
         private readonly float _suppressBoost;
+        private readonly UtilityCurveSet _curves;
 
-        public ShootAction(Transform agent, AICombat combat, float baseWeight = 1.0f, float retreatPenalty = 0.5f, float suppressBoost = 1.0f)
+        public ShootAction(Transform agent, AICombat combat, UtilityCurveSet curves, float baseWeight = 1.0f, float retreatPenalty = 0.5f, float suppressBoost = 1.0f)
             : base(DomainId.Combat, ExecutionType.Parallel, baseWeight)
         {
             _agent = agent;
             _combat = combat;
             _retreatPenalty = Mathf.Clamp01(retreatPenalty);
             _suppressBoost = Mathf.Max(0.1f, suppressBoost);
+            _curves = curves ?? throw new ArgumentNullException(nameof(curves));
         }
 
         public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
         {
-            yield return new HasAmmo();
-            yield return new Visibility();
+            yield return new HasAmmo(_curves);
+            yield return new Visibility(_curves);
         }
 
         public override bool CanStart(Blackboard.Blackboard bb)

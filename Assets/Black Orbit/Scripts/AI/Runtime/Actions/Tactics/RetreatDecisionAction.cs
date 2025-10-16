@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
 using Black_Orbit.Scripts.AI.Runtime.Core;
 using Black_Orbit.Scripts.AI.Runtime.Considerations;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Actions.Tactics
 {
@@ -12,19 +14,21 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Tactics
         private readonly Transform _agent;
         private readonly float _retreatDistance;
         private readonly bool _preferCover;
+        private readonly UtilityCurveSet _curves;
 
-        public RetreatDecisionAction(Transform agent, float baseWeight, float retreatDistance, bool preferCover)
+        public RetreatDecisionAction(Transform agent, UtilityCurveSet curves, float baseWeight, float retreatDistance, bool preferCover)
             : base(DomainId.Tactics, ExecutionType.Overlay, baseWeight)
         {
             _agent = agent;
             _retreatDistance = Mathf.Max(1f, retreatDistance);
             _preferCover = preferCover;
+            _curves = curves ?? throw new ArgumentNullException(nameof(curves));
         }
 
         public override IEnumerable<IConsideration> GetConsiderations()
         {
             // Основной драйвер — LowHealth
-            yield return new LowHealth();
+            yield return new LowHealth(_curves);
         }
 
         protected override void OnStart(Blackboard.Blackboard bb)

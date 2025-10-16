@@ -1,8 +1,10 @@
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
 using Black_Orbit.Scripts.AI.Runtime.Core;
+using System;
 using Black_Orbit.Scripts.AI.Runtime.Considerations;
 using Black_Orbit.Scripts.AI.Runtime.Movement;
+using Black_Orbit.Scripts.AI.Runtime.Utility;
 
 namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
 {
@@ -11,19 +13,21 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
         private readonly Transform _agent;
         private readonly AIMovementMotor _motor;
         private readonly float _radius;
+        private readonly UtilityCurveSet _curves;
         private Vector3 _target;
 
-        public ExploreAreaAction(Transform agent, AIMovementMotor motor, float baseWeight = 0.6f, float radius = 25f)
+        public ExploreAreaAction(Transform agent, AIMovementMotor motor, UtilityCurveSet curves, float baseWeight = 0.6f, float radius = 25f)
             : base(DomainId.Movement, ExecutionType.Parallel, baseWeight)
         {
             _agent = agent;
             _motor = motor;
             _radius = Mathf.Max(5f, radius);
+            _curves = curves ?? throw new ArgumentNullException(nameof(curves));
         }
 
         public override System.Collections.Generic.IEnumerable<IConsideration> GetConsiderations()
         {
-            yield return new ExploreNeed();
+            yield return new ExploreNeed(_curves);
         }
 
         public override bool CanStart(Blackboard.Blackboard bb)

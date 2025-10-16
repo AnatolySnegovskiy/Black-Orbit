@@ -30,18 +30,36 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
 
             var ctrl = GetComponent<AIController>();
 
-            // Initialize Utility Curves registry from profile
-            if (profile.Curves != null)
+            ctrl.UtilityCurves.Apply(profile.Curves);
+
+#if UNITY_EDITOR
+            if (Application.isPlaying)
             {
-                UtilityCurvesRegistry.DistanceToTargetCurve = profile.Curves.distanceToTarget;
-                UtilityCurvesRegistry.VisibilityCurve = profile.Curves.visibility;
-                UtilityCurvesRegistry.LowHealthCurve = profile.Curves.lowHealth;
-                UtilityCurvesRegistry.AmmoLowCurve = profile.Curves.ammoLow;
-                UtilityCurvesRegistry.HasAmmoCurve = profile.Curves.hasAmmo;
-                UtilityCurvesRegistry.CoverAvailableCurve = profile.Curves.coverAvailable;
-                UtilityCurvesRegistry.ExploreNeedCurve = profile.Curves.exploreNeed;
-                UtilityCurvesRegistry.GrenadeRangeCurve = profile.Curves.grenadeRange;
+                foreach (var other in AIController.Registry)
+                {
+                    if (other == ctrl) continue;
+                    var otherLoader = other.GetComponent<AIProfileLoader>();
+                    if (otherLoader != null && otherLoader.profile != null && otherLoader.profile != profile)
+                    {
+                        bool sharesCurve =
+                            ReferenceEquals(other.UtilityCurves.DistanceToTargetCurve, ctrl.UtilityCurves.DistanceToTargetCurve) ||
+                            ReferenceEquals(other.UtilityCurves.VisibilityCurve, ctrl.UtilityCurves.VisibilityCurve) ||
+                            ReferenceEquals(other.UtilityCurves.LowHealthCurve, ctrl.UtilityCurves.LowHealthCurve) ||
+                            ReferenceEquals(other.UtilityCurves.AmmoLowCurve, ctrl.UtilityCurves.AmmoLowCurve) ||
+                            ReferenceEquals(other.UtilityCurves.HasAmmoCurve, ctrl.UtilityCurves.HasAmmoCurve) ||
+                            ReferenceEquals(other.UtilityCurves.CoverAvailableCurve, ctrl.UtilityCurves.CoverAvailableCurve) ||
+                            ReferenceEquals(other.UtilityCurves.ExploreNeedCurve, ctrl.UtilityCurves.ExploreNeedCurve) ||
+                            ReferenceEquals(other.UtilityCurves.GrenadeRangeCurve, ctrl.UtilityCurves.GrenadeRangeCurve);
+
+                        if (sharesCurve)
+                        {
+                            UnityEngine.Debug.LogWarning($"[AIProfileLoader] Shared utility curves detected between '{name}' and '{other.name}'. Curves should be independent per profile.");
+                            break;
+                        }
+                    }
+                }
             }
+#endif
 
             // Movement domain
             if (profile.Movement != null && profile.Movement.enabled)
@@ -60,21 +78,21 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                 {
                     if (profile.Movement.Explore.enabled)
                     {
-                        domain.AddAction(new ExploreAreaAction(transform, motor,
+                        domain.AddAction(new ExploreAreaAction(transform, motor, ctrl.UtilityCurves,
                             profile.Movement.Explore.baseWeight,
                             profile.Movement.Explore.radius));
                     }
 
                     if (profile.Movement.Pursue.enabled)
                     {
-                        domain.AddAction(new PursueTargetAction(transform, motor,
+                        domain.AddAction(new PursueTargetAction(transform, motor, ctrl.UtilityCurves,
                             profile.Movement.Pursue.baseWeight,
                             profile.Movement.Pursue.maxDistance));
                     }
 
                     if (profile.Movement.Flank.enabled)
                     {
-                        domain.AddAction(new FlankEnemyAction(transform, motor,
+                        domain.AddAction(new FlankEnemyAction(transform, motor, ctrl.UtilityCurves,
                             profile.Movement.Flank.baseWeight,
                             profile.Movement.Flank.flankDistance,
                             profile.Movement.Flank.orderBoost));
@@ -82,7 +100,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
 
                     if (profile.Movement.TakeCover.enabled)
                     {
-                        domain.AddAction(new TakeCoverAction(transform, motor,
+                        domain.AddAction(new TakeCoverAction(transform, motor, ctrl.UtilityCurves,
                             profile.Movement.TakeCover.baseWeight,
                             profile.Movement.TakeCover.searchRadius,
                             profile.Movement.TakeCover.minDistanceToTarget));
@@ -109,7 +127,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                     }
                     else
                     {
-                        domain.AddAction(new ShootAction(transform, combat,
+                        domain.AddAction(new ShootAction(transform, combat, ctrl.UtilityCurves,
                             profile.Combat.Shoot.baseWeight,
                             profile.Combat.Shoot.retreatPenalty,
                             profile.Combat.Shoot.suppressBoost));
@@ -126,7 +144,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                     }
                     else
                     {
-                        domain.AddAction(new ReloadAction(combat,
+                        domain.AddAction(new ReloadAction(combat, ctrl.UtilityCurves,
                             profile.Combat.Reload.baseWeight,
                             profile.Combat.Reload.lowThreshold,
                             profile.Combat.Reload.highThreshold));
@@ -143,7 +161,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                     }
                     else
                     {
-                        domain.AddAction(new ThrowGrenadeAction(transform, thrower,
+                        domain.AddAction(new ThrowGrenadeAction(transform, thrower, ctrl.UtilityCurves,
                             profile.Combat.ThrowGrenade.baseWeight,
                             profile.Combat.ThrowGrenade.minRange,
                             profile.Combat.ThrowGrenade.maxRange,
@@ -160,7 +178,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
 
                 if (profile.Tactics.RetreatDecision.enabled)
                 {
-                    domain.AddAction(new RetreatDecisionAction(transform,
+                    domain.AddAction(new RetreatDecisionAction(transform, ctrl.UtilityCurves,
                         profile.Tactics.RetreatDecision.baseWeight,
                         profile.Tactics.RetreatDecision.retreatDistance,
                         profile.Tactics.RetreatDecision.preferCover));

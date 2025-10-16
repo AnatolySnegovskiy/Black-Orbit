@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using Black_Orbit.Scripts.AI.Runtime.Blackboard;
 using Black_Orbit.Scripts.AI.Runtime.Utility;
@@ -6,13 +7,15 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
 {
     public class DistanceToTarget : IConsideration
     {
+        private readonly UtilityCurveSet _curves;
         private readonly Transform _agent;
         private readonly float _maxDistance;
         private readonly bool _invert; // если true: ближе -> выше
         public string Name => nameof(DistanceToTarget);
 
-        public DistanceToTarget(Transform agent, float maxDistance, bool invert = false)
+        public DistanceToTarget(UtilityCurveSet curves, Transform agent, float maxDistance, bool invert = false)
         {
+            _curves = curves ?? throw new ArgumentNullException(nameof(curves));
             _agent = agent;
             _maxDistance = Mathf.Max(1f, maxDistance);
             _invert = invert;
@@ -24,7 +27,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Considerations
             float dist = Vector3.Distance(_agent.position, targetPos);
             float t = Mathf.Clamp01(dist / _maxDistance); // 0 близко, 1 далеко
             if (_invert) t = 1f - t; // опциональная инверсия до кривой
-            return UtilityCurvesRegistry.Eval(UtilityCurvesRegistry.DistanceToTargetCurve, t);
+            return _curves.Evaluate(_curves.DistanceToTargetCurve, t);
         }
     }
 }
