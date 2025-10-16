@@ -15,20 +15,24 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Tactics
         private readonly float _retreatDistance;
         private readonly bool _preferCover;
         private readonly UtilityCurveSet _curves;
+        private readonly float _criticalHealth;
+        private readonly float _maxHealth;
 
-        public RetreatDecisionAction(Transform agent, UtilityCurveSet curves, float baseWeight, float retreatDistance, bool preferCover)
+        public RetreatDecisionAction(Transform agent, UtilityCurveSet curves, float baseWeight, float retreatDistance, bool preferCover, float criticalHealth, float maxHealth)
             : base(DomainId.Tactics, ExecutionType.Overlay, baseWeight)
         {
             _agent = agent;
             _retreatDistance = Mathf.Max(1f, retreatDistance);
             _preferCover = preferCover;
             _curves = curves ?? throw new ArgumentNullException(nameof(curves));
+            _criticalHealth = Mathf.Clamp01(criticalHealth);
+            _maxHealth = Mathf.Clamp01(maxHealth);
         }
 
         public override IEnumerable<IConsideration> GetConsiderations()
         {
             // Основной драйвер — LowHealth
-            yield return new LowHealth(_curves);
+            yield return new LowHealth(_curves, _criticalHealth, _maxHealth);
         }
 
         protected override void OnStart(Blackboard.Blackboard bb)
