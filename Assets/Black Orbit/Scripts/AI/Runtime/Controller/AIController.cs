@@ -160,10 +160,22 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                 var domain = kv.Value;
                 var active = domain.GetActive();
                 if (active == null) continue;
+                float activeScore = 0f;
+                if (LastScores.TryGetValue(domain.Id, out var scores))
+                {
+                    for (int i = 0; i < scores.Count; i++)
+                    {
+                        if (scores[i].name == active.Name)
+                        {
+                            activeScore = scores[i].score;
+                            break;
+                        }
+                    }
+                }
                 frame.winners[domain.Id] = new ActionScore
                 {
                     name = active.Name,
-                    score = 0f, // детальный скор активного можно найти в LastScores
+                    score = activeScore,
                     domain = domain.Id,
                     exec = active.Execution
                 };
