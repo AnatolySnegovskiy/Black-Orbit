@@ -110,6 +110,7 @@
     <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Runtime\BulletPoolManager.cs" />
     <Compile Include="Assets\SCI_FI_MODULAR\Standard Assets\Utility\AlphaButtonClickMask.cs" />
     <Compile Include="Assets\SCI_FI_MODULAR\Standard Assets\Utility\LerpControlledBob.cs" />
+    <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Runtime\AIWeaponHandler.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\Runtime\StandardWeapon.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\FPS\CharacterAnimator.cs" />
     <Compile Include="Assets\Black Orbit\Scripts\WeaponSystem\ScriptableObjects\BulletScriptableObject.cs" />

@@ -14,9 +14,18 @@ namespace Black_Orbit.Scripts.AI.Runtime.Combat
         private void Awake()
         {
             if (weaponBehaviour != null)
-                _weapon = weaponBehaviour as IWeapon;
+                AssignWeapon(weaponBehaviour as IWeapon);
             if (_weapon == null)
-                _weapon = GetComponentInChildren<IWeapon>();
+                AssignWeapon(GetComponentInChildren<IWeapon>());
+        }
+
+        public void AssignWeapon(IWeapon weapon)
+        {
+            _weapon = weapon;
+            if (weapon is MonoBehaviour behaviour)
+            {
+                weaponBehaviour = behaviour;
+            }
         }
     }
 }
