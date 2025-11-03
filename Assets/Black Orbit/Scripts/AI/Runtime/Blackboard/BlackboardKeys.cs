@@ -6,8 +6,10 @@ namespace Black_Orbit.Scripts.AI.Runtime.Blackboard
     public static class BlackboardKeys
     {
         // Target
+        public static readonly BlackboardKey<Transform> TargetTransform = new("Target.Transform");
         public static readonly BlackboardKey<Vector3> TargetPosition = new("Target.Position");
         public static readonly BlackboardKey<float> TargetVisibility = new("Target.Visibility");
+        public static readonly BlackboardKey<bool> TargetVisible = new("Target.Visible");
 
         // Self
         public static readonly BlackboardKey<float> SelfHealth = new("Self.Health");

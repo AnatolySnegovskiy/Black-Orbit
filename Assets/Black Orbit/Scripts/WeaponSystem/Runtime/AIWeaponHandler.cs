@@ -12,11 +12,15 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
     [RequireComponent(typeof(AICombat))]
     public class AIWeaponHandler : MonoBehaviour
     {
-        [Header("Weapon Setup")]
+        [Header("Настройка оружия")]
         [SerializeField] private WeaponScriptableObject weaponData;
+        [Tooltip("Куда будет смонтирован префаб оружия. По умолчанию — на правую руку, если найдена.")]
         [SerializeField] private Transform weaponParent;
+        [Tooltip("Трансформ правой руки модели (если пусто, попытаемся найти через Animator Humanoid")]
         [SerializeField] private Transform rightHand;
+        [Tooltip("Трансформ левой руки модели (если пусто, попытаемся найти через Animator Humanoid")]
         [SerializeField] private Transform leftHand;
+        [Tooltip("Автоматически совместить точки хвата рук с держателями оружия при старте")]
         [SerializeField] private bool alignHandsOnStart = true;
 
         private AIController _controller;
@@ -53,6 +57,22 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
             }
         }
 
+        /// <summary>
+        /// Конфигурирование из внешнего редакторского кода (Builder).
+        /// Любые null параметры будут авторазрешены (например, руки через Animator Humanoid).
+        /// </summary>
+        public void SetConfig(WeaponScriptableObject data, Transform parent = null, Transform right = null, Transform left = null, bool? alignHands = null)
+        {
+            weaponData = data;
+            weaponParent = parent;
+            rightHand = right;
+            leftHand = left;
+            if (alignHands.HasValue) alignHandsOnStart = alignHands.Value;
+
+            // Автонатяжка указателей
+            AutoResolveBonesIfNeeded();
+        }
+
         private void SpawnWeapon()
         {
             if (weaponData.weaponPrefab == null)
@@ -64,7 +84,9 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
                 return;
             }
 
-            var parent = weaponParent != null ? weaponParent : transform;
+            AutoResolveBonesIfNeeded();
+
+            var parent = weaponParent != null ? weaponParent : (rightHand != null ? rightHand : transform);
             _weaponInstance = Instantiate(weaponData.weaponPrefab, parent);
 
             _weaponHandler = _weaponInstance.GetComponent<WeaponHandler>();
@@ -121,6 +143,62 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
                 leftHand.position = _weaponHandler.LeftHandHolder.position;
                 leftHand.rotation = _weaponHandler.LeftHandHolder.rotation;
             }
+        }
+
+        private void AutoResolveBonesIfNeeded()
+        {
+            // 1) Ищем специальную пустышку "WeaponHundler" как родителя оружия
+            if (weaponParent == null)
+            {
+                var hub = FindTransformDeep(transform, "WeaponHundler");
+                if (hub != null)
+                {
+                    weaponParent = hub;
+                    // Попробуем найти точки рук внутри хаба
+                    if (rightHand == null)
+                        rightHand = FindTransformDeep(hub, "Right arm point");
+                    if (leftHand == null)
+                        leftHand = FindTransformDeep(hub, "Left arm point");
+                }
+            }
+
+            // 2) Если не нашли через пустышку — пробуем искать по всему объекту
+            if (rightHand == null)
+                rightHand = FindTransformDeep(transform, "Right arm point");
+            if (leftHand == null)
+                leftHand = FindTransformDeep(transform, "Left arm point");
+
+            // 3) Фоллбек: берём кости из Animator Humanoid
+            if ((rightHand == null || leftHand == null))
+            {
+                var animator = GetComponentInChildren<Animator>();
+                if (animator != null && animator.isHuman)
+                {
+                    if (rightHand == null)
+                        rightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+                    if (leftHand == null)
+                        leftHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
+                }
+            }
+
+            // 4) Если родитель не назначен — по умолчанию правая рука либо сам объект
+            if (weaponParent == null)
+            {
+                weaponParent = rightHand != null ? rightHand : transform;
+            }
+        }
+
+        private static Transform FindTransformDeep(Transform root, string name)
+        {
+            if (root == null || string.IsNullOrEmpty(name)) return null;
+            if (root.name == name) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var child = root.GetChild(i);
+                var found = FindTransformDeep(child, name);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         private void OnAmmoChanged(int current, int magazine)

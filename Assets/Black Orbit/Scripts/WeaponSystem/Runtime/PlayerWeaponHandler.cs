@@ -9,6 +9,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
     public class PlayerWeaponHandler : MonoBehaviour
     {
         [SerializeField] private WeaponScriptableObject weaponData;
+        [SerializeField] private Transform weaponParent;
         [SerializeField] private Transform rightHand;
         [SerializeField] private Transform leftHand;
         private IWeapon _weapon;
@@ -30,7 +31,7 @@ namespace Black_Orbit.Scripts.WeaponSystem.Runtime
                 return;
             }
 
-            GameObject weaponGo = Instantiate(weaponData.weaponPrefab, transform);
+            GameObject weaponGo = Instantiate(weaponData.weaponPrefab, weaponParent);
             _weaponHandler = weaponGo.GetComponent<WeaponHandler>();
             HandPositioning(_weaponHandler);
        

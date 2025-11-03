@@ -5,12 +5,28 @@ using Black_Orbit.Scripts.AI.Runtime.Core;
 
 namespace Black_Orbit.Scripts.AI.Debug.Runtime
 {
+    [DisallowMultipleComponent]
+    [AddComponentMenu("Black Orbit/AI/Debug/Utility Runtime Overlay")]
+    [HelpURL("https://github.com/AnatolySnegovskiy/Black-Orbit/blob/main/Assets/Black%20Orbit/Docs/AI_Bots_GDD.md")]
     public class UtilityRuntimeOverlay : MonoBehaviour
     {
+        [Header("Цель (AIController)")]
+        [Tooltip("Если не задано и включено 'Автовыбор', при старте возьмёт первого доступного AIController на сцене.")]
         public AIController target;
+
+        [Header("Показ и управление")]
+        [Tooltip("Автоматически выбирать первого найденного AIController, если поле 'Цель' пусто.")]
         public bool autoPickFirst = true;
+
+        [Tooltip("Отображать оверлей на экране во время выполнения.")]
         public bool show = true;
+
+        [Tooltip("Клавиша переключения видимости оверлея.")]
         public KeyCode toggleKey = KeyCode.F9;
+
+        [Header("Журнал поведения")]
+        [Tooltip("Максимальное количество последних кадров решений, отображаемых в оверлее.")]
+        [Min(1)]
         public int maxLogLines = 8;
 
         private void Update()

@@ -29,7 +29,11 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
 
         public override bool CanStart(Blackboard.Blackboard bb)
         {
-            return _motor != null;
+            if (_motor == null) return false;
+            // Блокируем исследование, если есть актуальная цель (видимая или в памяти)
+            var hasTarget = bb.GetOrDefault(BlackboardKeys.TargetTransform, null) != null;
+            var visible = bb.GetOrDefault(BlackboardKeys.TargetVisible, false);
+            return !(hasTarget || visible);
         }
 
         protected override void OnStart(Blackboard.Blackboard bb)
@@ -49,6 +53,12 @@ namespace Black_Orbit.Scripts.AI.Runtime.Actions.Movement
 
         protected override void OnTick(Blackboard.Blackboard bb, float dt)
         {
+            // Если во время исследования появилась цель — немедленно остановиться
+            if (bb.GetOrDefault(BlackboardKeys.TargetTransform, null) != null || bb.GetOrDefault(BlackboardKeys.TargetVisible, false))
+            {
+                Stop(bb);
+                return;
+            }
             bool arrived = _motor.MoveTowards(_target, dt);
             if (arrived)
             {

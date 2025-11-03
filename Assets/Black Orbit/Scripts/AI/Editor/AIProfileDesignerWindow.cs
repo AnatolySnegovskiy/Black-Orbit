@@ -30,10 +30,10 @@ namespace Black_Orbit.Scripts.AI.Editor
 
         private GUIContent _refreshIcon;
 
-        [MenuItem("Black Orbit/AI/AI Profile Designer")]
+        [MenuItem("Black Orbit/AI/Дизайнер профилей AI")]
         public static void Open()
         {
-            GetWindow<AIProfileDesignerWindow>("AI Profile Designer");
+            GetWindow<AIProfileDesignerWindow>("Дизайнер профилей AI");
         }
 
         private void OnEnable()
@@ -66,7 +66,7 @@ namespace Black_Orbit.Scripts.AI.Editor
         {
             using (new EditorGUILayout.VerticalScope(GUILayout.Width(260f)))
             {
-                EditorGUILayout.LabelField("Profiles", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("Профили", EditorStyles.boldLabel);
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     var searchStyle = GUI.skin.FindStyle("ToolbarSeachTextField") ?? GUI.skin.textField;
@@ -81,13 +81,13 @@ namespace Black_Orbit.Scripts.AI.Editor
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("New", GUILayout.Height(22f)))
+                    if (GUILayout.Button(new GUIContent("Создать", "Создать новый профиль AI (ScriptableObject)"), GUILayout.Height(22f)))
                     {
                         CreateProfileAsset();
                     }
 
                     EditorGUI.BeginDisabledGroup(_selectedProfile == null);
-                    if (GUILayout.Button("Clone", GUILayout.Height(22f)))
+                    if (GUILayout.Button(new GUIContent("Клонировать", "Создать копию выбранного профиля"), GUILayout.Height(22f)))
                     {
                         CloneProfileAsset(_selectedProfile);
                     }
@@ -134,7 +134,7 @@ namespace Black_Orbit.Scripts.AI.Editor
             {
                 if (_selectedProfile == null || _serializedProfile == null)
                 {
-                    EditorGUILayout.HelpBox("Select or create an AIProfile asset to edit.", MessageType.Info);
+                    EditorGUILayout.HelpBox("Выберите или создайте AIProfile для редактирования.", MessageType.Info);
                     return;
                 }
 
@@ -142,9 +142,13 @@ namespace Black_Orbit.Scripts.AI.Editor
 
                 _detailsScroll = EditorGUILayout.BeginScrollView(_detailsScroll);
 
-                EditorGUILayout.LabelField("Profile Metadata", EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(_serializedProfile.FindProperty("profileName"));
-                EditorGUILayout.PropertyField(_serializedProfile.FindProperty("version"));
+                EditorGUILayout.LabelField("Метаданные профиля", EditorStyles.boldLabel);
+                EditorGUILayout.PropertyField(
+                    _serializedProfile.FindProperty("profileName"),
+                    new GUIContent("Имя профиля", "Отображаемое имя профиля в инструментах редактора."));
+                EditorGUILayout.PropertyField(
+                    _serializedProfile.FindProperty("version"),
+                    new GUIContent("Версия", "Произвольная версия/тег для отслеживания изменений."));
                 EditorGUILayout.Space(6f);
 
                 DrawUtilityCurvesSection();
@@ -169,31 +173,31 @@ namespace Black_Orbit.Scripts.AI.Editor
 
         private void DrawUtilityCurvesSection()
         {
-            _curvesFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_curvesFoldout, "Utility Curves");
+            _curvesFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_curvesFoldout, "Кривые полезности");
             if (_curvesFoldout)
             {
                 using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
                     var curvesProp = _serializedProfile.FindProperty("Curves");
-                    DrawCurve(curvesProp.FindPropertyRelative("distanceToTarget"), "Distance To Target");
-                    DrawCurve(curvesProp.FindPropertyRelative("visibility"), "Visibility");
-                    DrawCurve(curvesProp.FindPropertyRelative("lowHealth"), "Low Health");
-                    DrawCurve(curvesProp.FindPropertyRelative("ammoLow"), "Ammo Low");
-                    DrawCurve(curvesProp.FindPropertyRelative("hasAmmo"), "Has Ammo");
-                    DrawCurve(curvesProp.FindPropertyRelative("coverAvailable"), "Cover Available");
-                    DrawCurve(curvesProp.FindPropertyRelative("exploreNeed"), "Explore Need");
-                    DrawCurve(curvesProp.FindPropertyRelative("grenadeRange"), "Grenade Range");
+                    DrawCurve(curvesProp.FindPropertyRelative("distanceToTarget"), new GUIContent("Дистанция до цели", "Нормализация расстояния 0..1. 0 = далеко, 1 = близко (в зависимости от формы кривой)."));
+                    DrawCurve(curvesProp.FindPropertyRelative("visibility"), new GUIContent("Видимость цели", "Вероятность/степень видимости цели."));
+                    DrawCurve(curvesProp.FindPropertyRelative("lowHealth"), new GUIContent("Низкое здоровье", "Чем ниже здоровье, тем выше значение."));
+                    DrawCurve(curvesProp.FindPropertyRelative("ammoLow"), new GUIContent("Мало патронов", "Повышается при малом количестве боеприпасов."));
+                    DrawCurve(curvesProp.FindPropertyRelative("hasAmmo"), new GUIContent("Есть патроны", "Отражает достаточность боезапаса."));
+                    DrawCurve(curvesProp.FindPropertyRelative("coverAvailable"), new GUIContent("Доступно укрытие", "Оценивает наличие укрытий поблизости (см. CoverAvailable)."));
+                    DrawCurve(curvesProp.FindPropertyRelative("exploreNeed"), new GUIContent("Необходимость разведки", "Степень потребности исследовать территорию."));
+                    DrawCurve(curvesProp.FindPropertyRelative("grenadeRange"), new GUIContent("Дальность гранаты", "Подходит ли дистанция для броска гранаты."));
                 }
             }
 
             EditorGUILayout.EndFoldoutHeaderGroup();
         }
 
-        private void DrawCurve(SerializedProperty property, string label)
+        private void DrawCurve(SerializedProperty property, GUIContent label)
         {
             EditorGUILayout.Space(2f);
             var curve = property.animationCurveValue;
-            curve = EditorGUILayout.CurveField(new GUIContent(label), curve, Color.cyan, new Rect(0f, 0f, 1f, 1f), GUILayout.Height(60f));
+            curve = EditorGUILayout.CurveField(label, curve, Color.cyan, new Rect(0f, 0f, 1f, 1f), GUILayout.Height(60f));
             property.animationCurveValue = curve;
 
             if (curve != null && curve.keys.Length > 0)
@@ -218,20 +222,20 @@ namespace Black_Orbit.Scripts.AI.Editor
         private void DrawMovementSection()
         {
             var movementProp = _serializedProfile.FindProperty("Movement");
-            _movementFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_movementFoldout, "Movement Domain");
+            _movementFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_movementFoldout, "Домен Движения");
             if (_movementFoldout)
             {
                 using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
-                    EditorGUILayout.PropertyField(movementProp.FindPropertyRelative("enabled"));
+                    EditorGUILayout.PropertyField(movementProp.FindPropertyRelative("enabled"), new GUIContent("Включено", "Активировать/деактивировать домен движения."));
                     EditorGUILayout.Space(2f);
 
                     if (movementProp.FindPropertyRelative("enabled").boolValue)
                     {
-                        DrawMovementAction(movementProp.FindPropertyRelative("Explore"), "Explore", "radius");
-                        DrawMovementAction(movementProp.FindPropertyRelative("Pursue"), "Pursue", "maxDistance");
-                        DrawMovementAction(movementProp.FindPropertyRelative("Flank"), "Flank", "flankDistance", "orderBoost");
-                        DrawMovementAction(movementProp.FindPropertyRelative("TakeCover"), "Take Cover", "searchRadius", "minDistanceToTarget");
+                        DrawMovementAction(movementProp.FindPropertyRelative("Explore"), "Разведка (Explore)", "radius");
+                        DrawMovementAction(movementProp.FindPropertyRelative("Pursue"), "Преследование (Pursue)", "maxDistance");
+                        DrawMovementAction(movementProp.FindPropertyRelative("Flank"), "Окружение (Flank)", "flankDistance", "orderBoost");
+                        DrawMovementAction(movementProp.FindPropertyRelative("TakeCover"), "Занять укрытие (Take Cover)", "searchRadius", "minDistanceToTarget");
                     }
 
                     DrawActionWeightsPreview(DomainId.Movement);
@@ -246,16 +250,16 @@ namespace Black_Orbit.Scripts.AI.Editor
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(prop.FindPropertyRelative("enabled"));
+                EditorGUILayout.PropertyField(prop.FindPropertyRelative("enabled"), new GUIContent("Включено", "Активность данного действия."));
                 using (new EditorGUI.DisabledScope(!prop.FindPropertyRelative("enabled").boolValue))
                 {
-                    EditorGUILayout.PropertyField(prop.FindPropertyRelative("baseWeight"));
+                    EditorGUILayout.PropertyField(prop.FindPropertyRelative("baseWeight"), new GUIContent("Базовый вес", "Стартовая важность действия до учёта кривых и условий."));
                     foreach (var field in additionalFields)
                     {
                         var child = prop.FindPropertyRelative(field);
                         if (child != null)
                         {
-                            EditorGUILayout.PropertyField(child);
+                            EditorGUILayout.PropertyField(child, new GUIContent(ObjectNames.NicifyVariableName(field)));
                         }
                     }
                 }
@@ -265,19 +269,19 @@ namespace Black_Orbit.Scripts.AI.Editor
         private void DrawCombatSection()
         {
             var combatProp = _serializedProfile.FindProperty("Combat");
-            _combatFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_combatFoldout, "Combat Domain");
+            _combatFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_combatFoldout, "Домен Боя");
             if (_combatFoldout)
             {
                 using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
-                    EditorGUILayout.PropertyField(combatProp.FindPropertyRelative("enabled"));
+                    EditorGUILayout.PropertyField(combatProp.FindPropertyRelative("enabled"), new GUIContent("Включено", "Активировать/деактивировать домен боя."));
                     EditorGUILayout.Space(2f);
 
                     if (combatProp.FindPropertyRelative("enabled").boolValue)
                     {
-                        DrawCombatAction(combatProp.FindPropertyRelative("Shoot"), "Shoot", "retreatPenalty", "suppressBoost");
-                        DrawCombatAction(combatProp.FindPropertyRelative("Reload"), "Reload", "lowThreshold", "highThreshold");
-                        DrawCombatAction(combatProp.FindPropertyRelative("ThrowGrenade"), "Throw Grenade", "minRange", "maxRange", "cooldown");
+                        DrawCombatAction(combatProp.FindPropertyRelative("Shoot"), "Стрельба (Shoot)", "retreatPenalty", "suppressBoost");
+                        DrawCombatAction(combatProp.FindPropertyRelative("Reload"), "Перезарядка (Reload)", "lowThreshold", "highThreshold");
+                        DrawCombatAction(combatProp.FindPropertyRelative("ThrowGrenade"), "Граната (Throw Grenade)", "minRange", "maxRange", "cooldown");
                     }
 
                     DrawActionWeightsPreview(DomainId.Combat);
@@ -292,16 +296,16 @@ namespace Black_Orbit.Scripts.AI.Editor
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(prop.FindPropertyRelative("enabled"));
+                EditorGUILayout.PropertyField(prop.FindPropertyRelative("enabled"), new GUIContent("Включено", "Активность данного действия."));
                 using (new EditorGUI.DisabledScope(!prop.FindPropertyRelative("enabled").boolValue))
                 {
-                    EditorGUILayout.PropertyField(prop.FindPropertyRelative("baseWeight"));
+                    EditorGUILayout.PropertyField(prop.FindPropertyRelative("baseWeight"), new GUIContent("Базовый вес", "Стартовая важность действия до учёта кривых и условий."));
                     foreach (var field in additionalFields)
                     {
                         var child = prop.FindPropertyRelative(field);
                         if (child != null)
                         {
-                            EditorGUILayout.PropertyField(child);
+                            EditorGUILayout.PropertyField(child, new GUIContent(ObjectNames.NicifyVariableName(field)));
                         }
                     }
                 }
@@ -311,18 +315,18 @@ namespace Black_Orbit.Scripts.AI.Editor
         private void DrawTacticsSection()
         {
             var tacticsProp = _serializedProfile.FindProperty("Tactics");
-            _tacticsFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_tacticsFoldout, "Tactics Domain");
+            _tacticsFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(_tacticsFoldout, "Домен Тактики");
             if (_tacticsFoldout)
             {
                 using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
-                    EditorGUILayout.PropertyField(tacticsProp.FindPropertyRelative("enabled"));
+                    EditorGUILayout.PropertyField(tacticsProp.FindPropertyRelative("enabled"), new GUIContent("Включено", "Активировать/деактивировать домен тактики."));
                     EditorGUILayout.Space(2f);
 
                     if (tacticsProp.FindPropertyRelative("enabled").boolValue)
                     {
-                        DrawTacticsAction(tacticsProp.FindPropertyRelative("RetreatDecision"), "Retreat Decision", "critical", "max", "retreatDistance", "preferCover");
-                        DrawTacticsAction(tacticsProp.FindPropertyRelative("RetreatMove"), "Retreat Move");
+                        DrawTacticsAction(tacticsProp.FindPropertyRelative("RetreatDecision"), "Решение об отступлении", "critical", "max", "retreatDistance", "preferCover");
+                        DrawTacticsAction(tacticsProp.FindPropertyRelative("RetreatMove"), "Отступление (движение)");
                     }
 
                     DrawActionWeightsPreview(DomainId.Tactics);
@@ -337,16 +341,16 @@ namespace Black_Orbit.Scripts.AI.Editor
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(prop.FindPropertyRelative("enabled"));
+                EditorGUILayout.PropertyField(prop.FindPropertyRelative("enabled"), new GUIContent("Включено", "Активность данного действия."));
                 using (new EditorGUI.DisabledScope(!prop.FindPropertyRelative("enabled").boolValue))
                 {
-                    EditorGUILayout.PropertyField(prop.FindPropertyRelative("baseWeight"));
+                    EditorGUILayout.PropertyField(prop.FindPropertyRelative("baseWeight"), new GUIContent("Базовый вес", "Стартовая важность действия до учёта кривых и условий."));
                     foreach (var field in additionalFields)
                     {
                         var child = prop.FindPropertyRelative(field);
                         if (child != null)
                         {
-                            EditorGUILayout.PropertyField(child);
+                            EditorGUILayout.PropertyField(child, new GUIContent(ObjectNames.NicifyVariableName(field)));
                         }
                     }
                 }
@@ -357,7 +361,7 @@ namespace Black_Orbit.Scripts.AI.Editor
         {
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                EditorGUILayout.LabelField("Live Weights", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("Предпросмотр весов", EditorStyles.boldLabel);
                 bool hasData = false;
                 if (Application.isPlaying)
                 {
@@ -371,7 +375,7 @@ namespace Black_Orbit.Scripts.AI.Editor
                         EditorGUILayout.LabelField(loader.name, EditorStyles.miniBoldLabel);
                         foreach (var action in aiDomain.Actions)
                         {
-                            EditorGUILayout.LabelField($"{action.Name}", $"Base {action.BaseWeight:0.00}");
+                            EditorGUILayout.LabelField($"{action.Name}", $"База {action.BaseWeight:0.00}");
                             hasData = true;
                         }
                         hasData = true;
@@ -389,7 +393,7 @@ namespace Black_Orbit.Scripts.AI.Editor
 
                 if (!hasData)
                 {
-                    EditorGUILayout.LabelField("No actions available.", EditorStyles.miniLabel);
+                    EditorGUILayout.LabelField("Нет доступных действий.", EditorStyles.miniLabel);
                 }
             }
         }
@@ -399,26 +403,26 @@ namespace Black_Orbit.Scripts.AI.Editor
             switch (domain)
             {
                 case DomainId.Movement:
-                    yield return ("Explore", FormatSummary(_selectedProfile.Movement.Explore.enabled, _selectedProfile.Movement.Explore.baseWeight));
-                    yield return ("Pursue", FormatSummary(_selectedProfile.Movement.Pursue.enabled, _selectedProfile.Movement.Pursue.baseWeight));
-                    yield return ("Flank", FormatSummary(_selectedProfile.Movement.Flank.enabled, _selectedProfile.Movement.Flank.baseWeight));
-                    yield return ("Take Cover", FormatSummary(_selectedProfile.Movement.TakeCover.enabled, _selectedProfile.Movement.TakeCover.baseWeight));
+                    yield return ("Разведка (Explore)", FormatSummary(_selectedProfile.Movement.Explore.enabled, _selectedProfile.Movement.Explore.baseWeight));
+                    yield return ("Преследование (Pursue)", FormatSummary(_selectedProfile.Movement.Pursue.enabled, _selectedProfile.Movement.Pursue.baseWeight));
+                    yield return ("Окружение (Flank)", FormatSummary(_selectedProfile.Movement.Flank.enabled, _selectedProfile.Movement.Flank.baseWeight));
+                    yield return ("Занять укрытие (Take Cover)", FormatSummary(_selectedProfile.Movement.TakeCover.enabled, _selectedProfile.Movement.TakeCover.baseWeight));
                     break;
                 case DomainId.Combat:
-                    yield return ("Shoot", FormatSummary(_selectedProfile.Combat.Shoot.enabled, _selectedProfile.Combat.Shoot.baseWeight));
-                    yield return ("Reload", FormatSummary(_selectedProfile.Combat.Reload.enabled, _selectedProfile.Combat.Reload.baseWeight));
-                    yield return ("Throw Grenade", FormatSummary(_selectedProfile.Combat.ThrowGrenade.enabled, _selectedProfile.Combat.ThrowGrenade.baseWeight));
+                    yield return ("Стрельба (Shoot)", FormatSummary(_selectedProfile.Combat.Shoot.enabled, _selectedProfile.Combat.Shoot.baseWeight));
+                    yield return ("Перезарядка (Reload)", FormatSummary(_selectedProfile.Combat.Reload.enabled, _selectedProfile.Combat.Reload.baseWeight));
+                    yield return ("Граната (Throw Grenade)", FormatSummary(_selectedProfile.Combat.ThrowGrenade.enabled, _selectedProfile.Combat.ThrowGrenade.baseWeight));
                     break;
                 case DomainId.Tactics:
-                    yield return ("Retreat Decision", FormatSummary(_selectedProfile.Tactics.RetreatDecision.enabled, _selectedProfile.Tactics.RetreatDecision.baseWeight));
-                    yield return ("Retreat Move", FormatSummary(_selectedProfile.Tactics.RetreatMove.enabled, _selectedProfile.Tactics.RetreatMove.baseWeight));
+                    yield return ("Решение об отступлении", FormatSummary(_selectedProfile.Tactics.RetreatDecision.enabled, _selectedProfile.Tactics.RetreatDecision.baseWeight));
+                    yield return ("Отступление (движение)", FormatSummary(_selectedProfile.Tactics.RetreatMove.enabled, _selectedProfile.Tactics.RetreatMove.baseWeight));
                     break;
             }
         }
 
         private static string FormatSummary(bool enabled, float weight)
         {
-            return enabled ? $"Enabled • Base {weight:0.00}" : "Disabled";
+            return enabled ? $"Включено • База {weight:0.00}" : "Выключено";
         }
 
         private IEnumerable<AIProfileLoader> GetRuntimeLoadersForSelectedProfile()
@@ -436,30 +440,30 @@ namespace Black_Orbit.Scripts.AI.Editor
 
         private void DrawSceneIntegration()
         {
-            EditorGUILayout.LabelField("Scene Integration", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Интеграция со сценой", EditorStyles.boldLabel);
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 if (_selectedProfile == null)
                 {
-                    EditorGUILayout.HelpBox("Select a profile to assign.", MessageType.Info);
+                    EditorGUILayout.HelpBox("Выберите профиль для назначения.", MessageType.Info);
                     return;
                 }
 
                 var selectedLoaders = GetLoadersFromSelection().ToList();
-                EditorGUILayout.LabelField("Selected Loaders", selectedLoaders.Count.ToString());
-                if (GUILayout.Button("Assign to Selected Loaders"))
+                EditorGUILayout.LabelField("Выбранные загрузчики (AIProfileLoader)", selectedLoaders.Count.ToString());
+                if (GUILayout.Button(new GUIContent("Назначить выбранным", "Назначить текущий профиль всем выбранным AIProfileLoader в сцене.")))
                 {
                     AssignProfileToLoaders(selectedLoaders);
                 }
 
-                if (GUILayout.Button("Assign to All Scene Loaders"))
+                if (GUILayout.Button(new GUIContent("Назначить всем в сцене", "Назначить текущий профиль всем AIProfileLoader в сцене.")))
                 {
                     AssignProfileToLoaders(FindSceneLoaders(includeInactive: true));
                 }
 
                 using (new EditorGUI.DisabledScope(!Application.isPlaying))
                 {
-                    if (GUILayout.Button("Push Runtime Changes From Selected Loader"))
+                    if (GUILayout.Button(new GUIContent("Применить Runtime значения из выбранного", "Считать актуальные кривые/веса с выбранного агента (игровая сцена) в профиль-ассет.")))
                     {
                         var runtimeLoader = selectedLoaders.FirstOrDefault();
                         if (runtimeLoader != null)
@@ -468,7 +472,7 @@ namespace Black_Orbit.Scripts.AI.Editor
                         }
                         else
                         {
-                            ShowNotification(new GUIContent("No AIProfileLoader selected."));
+                            ShowNotification(new GUIContent("AIProfileLoader не выбран."));
                         }
                     }
                 }
@@ -508,7 +512,7 @@ namespace Black_Orbit.Scripts.AI.Editor
 
             if (count > 0)
             {
-                ShowNotification(new GUIContent($"Assigned to {count} loader(s)."));
+                ShowNotification(new GUIContent($"Назначено загрузчикам: {count}."));
             }
         }
 
@@ -563,7 +567,7 @@ namespace Black_Orbit.Scripts.AI.Editor
 
             EditorUtility.SetDirty(_selectedProfile);
             AssetDatabase.SaveAssets();
-            ShowNotification(new GUIContent("Runtime values pushed to asset."));
+            ShowNotification(new GUIContent("Значения из рантайма сохранены в ассет профиля."));
         }
 
         private void ApplyWeightsFromDomain(AIDomain domain, DomainId id)
@@ -712,7 +716,7 @@ namespace Black_Orbit.Scripts.AI.Editor
 
         private void CreateProfileAsset()
         {
-            var path = EditorUtility.SaveFilePanelInProject("Create AI Profile", "NewAIProfile", "asset", "Choose location for the new AI Profile");
+            var path = EditorUtility.SaveFilePanelInProject("Создать AI Profile", "NewAIProfile", "asset", "Выберите путь для нового AI Profile");
             if (string.IsNullOrEmpty(path)) return;
 
             var profile = ScriptableObject.CreateInstance<AIProfile>();
@@ -731,7 +735,7 @@ namespace Black_Orbit.Scripts.AI.Editor
 
             var sourcePath = AssetDatabase.GetAssetPath(source);
             var directory = System.IO.Path.GetDirectoryName(sourcePath);
-            var newPath = EditorUtility.SaveFilePanelInProject("Clone AI Profile", source.name + " Copy", "asset", "Choose location for the cloned profile", directory);
+            var newPath = EditorUtility.SaveFilePanelInProject("Клонировать AI Profile", source.name + " Copy", "asset", "Выберите путь для копии профиля", directory);
             if (string.IsNullOrEmpty(newPath)) return;
 
             var clone = Instantiate(source);

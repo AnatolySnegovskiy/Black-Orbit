@@ -13,6 +13,10 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
     {
         [Range(0.05f, 2f)] public float tickRate = 0.25f;
 
+        [Header("Планирование (шедулер)")]
+        [Tooltip("Если включено, внутренний цикл (корутина) не запускается. Тики будет вызывать внешний AIUpdateScheduler.")]
+        public bool externalScheduler = false;
+
         public Blackboard.Blackboard Blackboard { get; private set; }
         public UtilityCurveSet UtilityCurves { get; private set; }
 
@@ -53,7 +57,10 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
 
         private void OnEnable()
         {
-            _loop = StartCoroutine(Loop());
+            if (!externalScheduler)
+            {
+                _loop = StartCoroutine(Loop());
+            }
             if (!_registry.Contains(this)) _registry.Add(this);
         }
 
@@ -72,6 +79,12 @@ namespace Black_Orbit.Scripts.AI.Runtime.Controller
                 Tick(tickRate);
                 yield return wait;
             }
+        }
+
+        // Публичный тик для внешнего шедулера
+        public void TickStep(float dt)
+        {
+            Tick(dt);
         }
 
         private void Tick(float dt)

@@ -8,25 +8,44 @@ namespace Black_Orbit.Scripts.AI.Runtime.Perception
     [RequireComponent(typeof(FactionMember))]
     public class FactionPerception : MonoBehaviour
     {
-        [Header("Update")]
+        [Header("Обновление")]
         [Range(0.05f, 2f)] public float tickRate = 0.2f;
 
-        [Header("Vision")]
-        public float sightRadius = 60f;
-        [Range(1f, 180f)] public float fovAngle = 90f;
-        public LayerMask losObstacles = Physics.DefaultRaycastLayers;
-        public Transform eyes; // опционально: точка зрения
+        [Header("Зрение")]
+        [Tooltip("Радиус зрения")] public float sightRadius = 60f;
+        [Tooltip("Поле зрения (угол)")] [Range(1f, 180f)] public float fovAngle = 90f;
+        [Tooltip("Слои, которые блокируют линию зрения (Raycast)")] public LayerMask losObstacles = Physics.DefaultRaycastLayers;
+        [Tooltip("Слои, по которым ищем цель (0 = любые). Оставьте 0, если не нужно ограничивать")] public LayerMask detectableLayers = 0;
+        [Tooltip("Порог видимости [0..1], выше которого цель считается видимой")] [Range(0f,1f)] public float visibleThreshold = 0.25f;
+        [Tooltip("Время памяти цели (сек). Если цель пропала из вида, сохраняем последнюю позицию")] [Min(0f)] public float targetMemoryTime = 3f;
+        [Tooltip("Трансформ глаз. Если не задан, возьмётся transform")] public Transform eyes;
+
+        [Header("Отладка")]
+        public bool debugDraw = false;
 
         private Controller.AIController _ai;
         private FactionMember _self;
         private float _timer;
         private readonly List<FactionMember> _cache = new();
 
+        private Transform _lastTarget;
+        private float _lastSeenTime;
+        private Vector3 _lastKnownPos;
+
         private void Awake()
         {
             _ai = GetComponent<Controller.AIController>();
             _self = GetComponent<FactionMember>();
-            if (eyes == null) eyes = transform;
+            if (eyes == null)
+            {
+                var animator = GetComponentInChildren<Animator>();
+                if (animator != null && animator.isHuman)
+                {
+                    var head = animator.GetBoneTransform(HumanBodyBones.Head);
+                    if (head != null) eyes = head;
+                }
+                if (eyes == null) eyes = transform;
+            }
         }
 
         private void Update()
@@ -48,7 +67,7 @@ namespace Black_Orbit.Scripts.AI.Runtime.Perception
             var enemies = FactionManager.Instance.FindEnemiesOfFaction(_self.faction);
             if (enemies == null || enemies.Count == 0)
             {
-                _ai.Blackboard.Set(BlackboardKeys.TargetVisibility, 0f);
+                ClearTargetIfMemoryExpired();
                 return;
             }
 
@@ -61,6 +80,8 @@ namespace Black_Orbit.Scripts.AI.Runtime.Perception
             {
                 if (fm == null) continue;
                 Transform t = fm.transform;
+                if (detectableLayers.value != 0 && ((1 << t.gameObject.layer) & detectableLayers.value) == 0)
+                    continue;
                 Vector3 to = t.position - eyePos; to.y = 0f;
                 float dist = to.magnitude;
                 if (dist > sightRadius || dist < 0.01f) continue;
@@ -93,13 +114,64 @@ namespace Black_Orbit.Scripts.AI.Runtime.Perception
 
             if (best != null)
             {
+                _ai.Blackboard.Set(BlackboardKeys.TargetTransform, best);
                 _ai.Blackboard.Set(BlackboardKeys.TargetPosition, best.position);
                 _ai.Blackboard.Set(BlackboardKeys.TargetVisibility, bestScore);
+                bool isVisible = bestScore >= visibleThreshold;
+                _ai.Blackboard.Set(BlackboardKeys.TargetVisible, isVisible);
+
+                _lastTarget = best;
+                _lastKnownPos = best.position;
+                if (isVisible) _lastSeenTime = Time.time;
             }
             else
             {
-                _ai.Blackboard.Set(BlackboardKeys.TargetVisibility, 0f);
+                // Нет видимых целей — используем память
+                ClearTargetIfMemoryExpired();
             }
         }
+
+        private void ClearTargetIfMemoryExpired()
+        {
+            if (_lastTarget != null)
+            {
+                // Память о цели в течение targetMemoryTime секунд
+                float since = Time.time - _lastSeenTime;
+                if (since <= targetMemoryTime)
+                {
+                    // держим последнюю позицию, но цель невидима
+                    _ai?.Blackboard?.Set(BlackboardKeys.TargetTransform, _lastTarget);
+                    _ai?.Blackboard?.Set(BlackboardKeys.TargetPosition, _lastKnownPos);
+                    _ai?.Blackboard?.Set(BlackboardKeys.TargetVisibility, 0f);
+                    _ai?.Blackboard?.Set(BlackboardKeys.TargetVisible, false);
+                    return;
+                }
+            }
+
+            // Полный сброс
+            _lastTarget = null;
+            _ai?.Blackboard?.Set(BlackboardKeys.TargetTransform, null);
+            _ai?.Blackboard?.Set(BlackboardKeys.TargetVisibility, 0f);
+            _ai?.Blackboard?.Set(BlackboardKeys.TargetVisible, false);
+        }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmosSelected()
+        {
+            if (!debugDraw && !UnityEditor.Selection.Contains(gameObject)) return;
+            var eye = eyes != null ? eyes : transform;
+            Vector3 pos = eye.position;
+            Vector3 fwd = eye.forward;
+            Gizmos.color = new Color(0f, 1f, 0f, 0.25f);
+            Gizmos.DrawWireSphere(pos, sightRadius);
+
+            // Draw FOV cone (approx)
+            Vector3 left = Quaternion.Euler(0f, -fovAngle * 0.5f, 0f) * fwd;
+            Vector3 right = Quaternion.Euler(0f, fovAngle * 0.5f, 0f) * fwd;
+            Gizmos.color = new Color(1f, 1f, 0f, 0.6f);
+            Gizmos.DrawLine(pos, pos + left * sightRadius);
+            Gizmos.DrawLine(pos, pos + right * sightRadius);
+        }
+#endif
     }
 }
